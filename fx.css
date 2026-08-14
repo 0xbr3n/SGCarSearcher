@@ -1,0 +1,107 @@
+/* ============================================================
+   fx.css — optional "Full FX" layer + Web-Slinger theme chrome.
+   Loaded after the main stylesheet. Everything here is additive:
+   nothing is touched unless html[data-t="webslinger"] is set, or
+   body carries .fx-on (toggled by fx.js from Hunt → Theme → Full FX).
+   Respects prefers-reduced-motion throughout.
+   ============================================================ */
+
+/* ---------- Web-Slinger theme chrome (comic halftone + web lines) ---------- */
+html[data-t="webslinger"] .mast{
+  background-image:
+    radial-gradient(var(--rule2) 1px, transparent 1.4px);
+  background-size: 10px 10px;
+  background-position: -4px -4px;
+}
+html[data-t="webslinger"] .mast:before,
+html[data-t="webslinger"] .mast:after{
+  border-color: var(--parf);
+}
+html[data-t="webslinger"] h2{ border-left-color: var(--parf); }
+html[data-t="webslinger"] .car:before,
+html[data-t="webslinger"] .car:after{
+  border-color: var(--parf) !important;
+}
+html[data-t="webslinger"] .score{
+  border-color: var(--parf); color: var(--parf);
+}
+html[data-t="webslinger"] #navBar{
+  background: var(--parf); box-shadow: 0 0 8px var(--parf);
+}
+html[data-t="webslinger"] nav button[aria-selected="true"] .g{ color: var(--parf); }
+
+/* faint web-crack corner behind the masthead title, pure CSS, no image asset */
+html[data-t="webslinger"] .mast{ position:relative; overflow:hidden }
+html[data-t="webslinger"] .mast .webline{
+  position:absolute; top:-40%; right:-10%; width:220px; height:220px; pointer-events:none;
+  background:
+    repeating-conic-gradient(from 0deg, var(--rule2) 0deg 1deg, transparent 1deg 30deg);
+  border-radius:50%;
+  opacity:.35;
+  mask-image: radial-gradient(circle at center, black 0%, black 40%, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle at center, black 0%, black 40%, transparent 72%);
+}
+
+/* ---------- Full FX: entrance + interaction animation upgrades ---------- */
+body.fx-on .car{
+  animation: fxPanelDrop .5s cubic-bezier(.2,1.4,.4,1) both;
+}
+body.fx-on .qrow{
+  animation: fxPanelDrop .4s cubic-bezier(.2,1.4,.4,1) both;
+}
+@keyframes fxPanelDrop{
+  0%{ opacity:0; transform:translateY(-14px) rotate(-1.5deg) scale(.97) }
+  60%{ opacity:1; transform:translateY(3px) rotate(.5deg) scale(1.01) }
+  100%{ opacity:1; transform:none }
+}
+body.fx-on .chip:active{ animation: fxChipPop .22s var(--ease) both }
+@keyframes fxChipPop{
+  0%{ transform:scale(1) }
+  40%{ transform:scale(.88) rotate(-3deg) }
+  100%{ transform:scale(1) rotate(0) }
+}
+body.fx-on button:active,
+body.fx-on .qgo:active{ filter:brightness(1.08) }
+
+/* Comic "impact burst" — injected by fx.js next to the tapped primary button */
+.fx-burst{
+  position:fixed; z-index:60; pointer-events:none;
+  font-family:var(--pixel); font-size:15px; color:var(--parf);
+  text-shadow: 2px 2px 0 var(--ink), -2px -2px 0 var(--card);
+  animation: fxBurst .55s cubic-bezier(.2,1,.3,1) both;
+  white-space:nowrap;
+}
+@keyframes fxBurst{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(.3) rotate(-8deg) }
+  30%{ opacity:1; transform:translate(-50%,-50%) scale(1.15) rotate(4deg) }
+  70%{ opacity:1; transform:translate(-50%,-60%) scale(1) rotate(-2deg) }
+  100%{ opacity:0; transform:translate(-50%,-85%) scale(.9) rotate(0) }
+}
+
+/* Toast comic flash when a sound plays alongside it */
+body.fx-on .toast.on{ animation: fxToastFlash .4s var(--ease) }
+@keyframes fxToastFlash{
+  0%{ box-shadow: 0 0 0 0 var(--parf) }
+  40%{ box-shadow: 0 0 0 6px transparent }
+  100%{ box-shadow: 0 0 0 0 transparent }
+}
+
+/* Sound/FX toggle switch, added to the theme sheet by fx.js */
+.fxrow{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-top:16px; padding-top:16px; border-top:1px solid var(--rule2) }
+.fxrow .fxlbl{ font-family:var(--sans); font-size:14px; font-weight:600; color:var(--ink) }
+.fxrow .fxhint{ font-size:11.5px; color:var(--ink2); margin-top:2px; font-family:var(--sans); font-weight:400 }
+.fxswitch{ width:52px; height:30px; min-height:0; border-radius:999px; border:2px solid var(--ink);
+  background:var(--soft); position:relative; flex:0 0 auto; padding:0; box-shadow:none; cursor:pointer }
+.fxswitch:before{ content:""; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+  background:var(--ink2); transition:transform .2s var(--ease), background-color .2s var(--ease) }
+.fxswitch[aria-pressed="true"]{ background:var(--parf-soft); border-color:var(--parf) }
+.fxswitch[aria-pressed="true"]:before{ transform:translateX(22px); background:var(--parf) }
+
+@media (prefers-reduced-motion: reduce){
+  body.fx-on .car, body.fx-on .qrow{ animation:none !important }
+  body.fx-on .chip:active{ animation:none !important }
+  .fx-burst{ animation:none !important; opacity:0 }
+  body.fx-on .toast.on{ animation:none !important }
+  html[data-t="webslinger"] .mast .webline{ display:none }
+}

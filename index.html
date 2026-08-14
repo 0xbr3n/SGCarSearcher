@@ -1,0 +1,1402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#D9DED5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Car Scout">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" href="./icon-192.png">
+<title>SG Car Scout — log card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./fx.css">
+<style>
+/* ===== Themes. Each is a full token set; --sw1/2/3 drive the picker swatch. ===== */
+:root,html[data-t="logcard"]{
+  --ground:#DDE1DA; --card:#FFFFFF; --soft:#EFF1EB; --ink:#151A1C; --ink2:#4A5457;
+  --rule:#C2C9BC; --rule2:#DDE2D7;
+  --parf:#0F6B52; --parf-soft:#E2EFE9; --flag:#9E2B1E; --flag-soft:#F6E5E1;
+  --amber:#7A5310; --amber-soft:#F4EBD8;
+  --sw1:#DDE1DA; --sw2:#151A1C; --sw3:#0F6B52;
+}
+html[data-t="paper"]{
+  --ground:#F3EFE7; --card:#FFFDF9; --soft:#EAE4D8; --ink:#221E18; --ink2:#5E564A;
+  --rule:#D3CABA; --rule2:#E4DDD0;
+  --parf:#3F6B2F; --parf-soft:#E7EEDF; --flag:#A33B22; --flag-soft:#F7E7E0;
+  --amber:#7E5A0D; --amber-soft:#F4EAD4;
+  --sw1:#F3EFE7; --sw2:#221E18; --sw3:#3F6B2F;
+}
+html[data-t="night"]{
+  --ground:#101512; --card:#181E1A; --soft:#1F2621; --ink:#E8EDE6; --ink2:#9AA69C;
+  --rule:#2E372F; --rule2:#242C26;
+  --parf:#4FBF97; --parf-soft:#163026; --flag:#E0705E; --flag-soft:#331C18;
+  --amber:#D6A54A; --amber-soft:#2E2617;
+  --sw1:#101512; --sw2:#E8EDE6; --sw3:#4FBF97;
+}
+html[data-t="oled"]{
+  --ground:#000000; --card:#0A0A0A; --soft:#141414; --ink:#F2F2F2; --ink2:#8C8C8C;
+  --rule:#262626; --rule2:#1A1A1A;
+  --parf:#3DDC97; --parf-soft:#0C2419; --flag:#FF6B57; --flag-soft:#2A1310;
+  --amber:#E8B44C; --amber-soft:#241C0C;
+  --sw1:#000000; --sw2:#F2F2F2; --sw3:#3DDC97;
+}
+html[data-t="marina"]{
+  --ground:#0B1B26; --card:#122835; --soft:#1A3547; --ink:#E4F2F8; --ink2:#8FB0C2;
+  --rule:#24475C; --rule2:#1B3B4E;
+  --parf:#48CFC0; --parf-soft:#10333A; --flag:#F2795E; --flag-soft:#3A1D18;
+  --amber:#E3B25C; --amber-soft:#33280F;
+  --sw1:#0B1B26; --sw2:#E4F2F8; --sw3:#48CFC0;
+}
+html[data-t="kopi"]{
+  --ground:#241A14; --card:#31241C; --soft:#3E2F25; --ink:#F6EADF; --ink2:#B39A85;
+  --rule:#4E3B2E; --rule2:#3A2C22;
+  --parf:#C9A227; --parf-soft:#33290D; --flag:#E07A5F; --flag-soft:#3A2019;
+  --amber:#D9A05B; --amber-soft:#372515;
+  --sw1:#241A14; --sw2:#F6EADF; --sw3:#C9A227;
+}
+html[data-t="orchard"]{
+  --ground:#F0F4EC; --card:#FFFFFF; --soft:#E2EBDC; --ink:#16241A; --ink2:#4E6152;
+  --rule:#C0D0BA; --rule2:#D9E4D4;
+  --parf:#186540; --parf-soft:#DFF0E5; --flag:#A32E28; --flag-soft:#F7E3E1;
+  --amber:#6F520E; --amber-soft:#F2EAD3;
+  --sw1:#F0F4EC; --sw2:#16241A; --sw3:#186540;
+}
+html[data-t="dusk"]{
+  --ground:#1A1424; --card:#241C31; --soft:#2F2540; --ink:#F0EAF8; --ink2:#A697BC;
+  --rule:#3C3050; --rule2:#2C2340;
+  --parf:#7DD8B0; --parf-soft:#1B3229; --flag:#F27D8E; --flag-soft:#361B26;
+  --amber:#E5B75E; --amber-soft:#332714;
+  --sw1:#1A1424; --sw2:#F0EAF8; --sw3:#C08BE8;
+}
+/* Web-Slinger: comic red/blue, AA-checked same as every other theme —
+   this is a colour swap, not a licensed skin. No copyrighted art/audio. */
+html[data-t="webslinger"]{
+  --ground:#0B1E3D; --card:#0F2C55; --soft:#16386A; --ink:#F3F6FC; --ink2:#9FB6DC;
+  --rule:#2C4E85; --rule2:#1E3B6B;
+  --parf:#FF6161; --parf-soft:#3A1518; --flag:#FFD23F; --flag-soft:#3D3210;
+  --amber:#FFD23F; --amber-soft:#3D3210;
+  --sw1:#0B1E3D; --sw2:#F3F6FC; --sw3:#FF6161;
+}
+:root{
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+  --cond:"IBM Plex Sans Condensed","IBM Plex Sans",-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --pixel:"Press Start 2P",var(--cond);
+  --r:4px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --dur:.34s;
+  --pop:3px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans); background:var(--ground); color:var(--ink);
+  transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease);
+  font-size:15px; line-height:1.45; padding-bottom:calc(64px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px}
+
+/* ---------- masthead: HUD console header ---------- */
+.mast{padding:calc(14px + env(safe-area-inset-top)) 0 14px;border-bottom:3px solid var(--ink);position:relative}
+.mast:before,.mast:after{content:"";position:absolute;bottom:-3px;width:14px;height:8px;border:3px solid var(--ink);border-top:0}
+.mast:before{left:0;border-right:0}
+.mast:after{right:0;border-left:0}
+.mast .eyebrow{font-family:var(--pixel);font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);display:flex;justify-content:space-between;align-items:center;gap:8px;line-height:1.6}
+.mast .eyebrow:before{content:"●";color:var(--parf);margin-right:6px;animation:blink 1.6s step-end infinite}
+@keyframes blink{50%{opacity:.15}}
+.mast h1{font-family:var(--pixel);font-weight:400;font-size:24px;line-height:1.3;letter-spacing:-.01em;margin:12px 0 6px;text-shadow:var(--pop) var(--pop) 0 var(--parf-soft)}
+.mast .sub{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+.tbtn{font-family:var(--pixel);font-size:9px;letter-spacing:.02em;text-transform:uppercase;background:var(--soft);border:2px solid var(--ink);color:var(--ink);border-radius:0;padding:7px 10px;min-height:0;width:auto;box-shadow:var(--pop) var(--pop) 0 var(--ink)}
+.tbtn:active{transform:translate(var(--pop),var(--pop));box-shadow:none}
+
+/* ---------- generic ---------- */
+h2{font-family:var(--pixel);font-weight:400;font-size:12px;letter-spacing:0;margin:0 0 10px;padding-left:11px;border-left:4px solid var(--parf);line-height:1.5}
+.hint{font-size:12.5px;color:var(--ink2);line-height:1.5}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.panel{background:var(--card);border:2px solid var(--ink);border-radius:var(--r);padding:16px;margin:16px 0 18px;
+  box-shadow:var(--pop) var(--pop) 0 0 var(--rule);
+  transition:background-color var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+.field{margin-top:12px}
+label,.lbl{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink2);margin-bottom:5px}
+input,select,textarea,button{font-family:var(--sans);font-size:15px;width:100%;min-height:46px;border:2px solid var(--rule);border-radius:var(--r);padding:11px 12px;background:var(--card);color:var(--ink);appearance:none}
+input,select{font-family:var(--mono)}
+textarea{min-height:96px;line-height:1.5;font-family:var(--mono);font-size:13px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2.5px solid var(--parf);outline-offset:2px}
+button{background:var(--ink);color:var(--ground);border:2px solid var(--ink);font-weight:600;letter-spacing:.01em;cursor:pointer;
+  box-shadow:var(--pop) var(--pop) 0 0 var(--rule);
+  transition:transform .13s var(--ease),background-color var(--dur) var(--ease),color var(--dur) var(--ease),box-shadow .13s var(--ease)}
+button:active{transform:translate(var(--pop),var(--pop));box-shadow:none}
+button.ghost{background:var(--card);color:var(--ink);border:2px solid var(--ink);font-weight:500}
+button.danger{background:var(--card);color:var(--flag);border:2px solid var(--flag);box-shadow:var(--pop) var(--pop) 0 0 var(--flag-soft)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+
+/* ---------- chips: comic badges ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{width:auto;min-height:0;padding:9px 13px;font-family:var(--mono);font-size:12px;font-weight:600;background:var(--soft);border:2px solid var(--ink);color:var(--ink);border-radius:999px;
+  box-shadow:2px 2px 0 0 var(--rule);
+  transition:transform .14s var(--ease),background-color .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease),box-shadow .13s var(--ease)}
+.chip:active{transform:translate(2px,2px);box-shadow:none}
+.chip[aria-pressed="true"]{background:var(--parf);color:var(--card);border-color:var(--parf);box-shadow:2px 2px 0 0 var(--ink)}
+.chip.x{padding:8px 10px;color:var(--ink2);box-shadow:none;border-color:var(--rule2)}
+
+/* ---------- signature: the value strip ---------- */
+.strip{margin:12px 0 4px}
+.strip .bar{display:flex;height:30px;border:2px solid var(--ink);border-radius:2px;overflow:hidden;background:var(--soft)}
+.strip .burn{background:repeating-linear-gradient(135deg,var(--flag) 0 5px,transparent 5px 10px),var(--flag-soft);border-right:1px solid var(--ink)}
+.strip .keep{background:var(--parf-soft)}
+.strip .seg{position:relative;transition:flex-basis .5s cubic-bezier(.22,1,.36,1);flex-grow:0;flex-shrink:0}
+.strip .legend{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;margin-top:5px;color:var(--ink2);gap:10px}
+.strip .legend b{display:block;font-size:13px;letter-spacing:0;color:var(--ink);font-weight:600}
+.strip .legend .r{text-align:right}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
+}
+
+/* ---------- listing card: target-lock HUD frame ---------- */
+.car{background:var(--card);border:2px solid var(--ink);border-radius:var(--r);padding:14px;margin:14px 0;position:relative;
+  box-shadow:var(--pop) var(--pop) 0 0 var(--rule)}
+.car:before,.car:after{content:"";position:absolute;top:-2px;width:10px;height:10px;border-top:2px solid var(--parf)}
+.car:before{left:-2px;border-left:2px solid var(--parf)}
+.car:after{right:-2px;border-right:2px solid var(--parf)}
+.car .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.car .nm{font-family:var(--cond);font-weight:700;font-size:20px;line-height:1.1;letter-spacing:-.01em}
+.score{font-family:var(--pixel);font-size:18px;font-weight:400;line-height:1;text-align:right;flex:0 0 auto;color:var(--parf);
+  border:2px solid var(--parf);border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center}
+.score small{display:block;font-size:9.5px;letter-spacing:.11em;color:var(--ink2);font-weight:400;margin-top:3px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:4px 7px;border-radius:2px;background:var(--soft);color:var(--ink2);border:1px solid var(--rule2)}
+.tag.good{background:var(--parf-soft);color:var(--parf);border-color:transparent;font-weight:500}
+.tag.warn{background:var(--amber-soft);color:var(--amber);border-color:transparent;font-weight:500}
+.tag.bad{background:var(--flag-soft);color:var(--flag);border-color:transparent;font-weight:500}
+.dl{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;border-top:1px solid var(--rule2)}
+.dl div{padding:8px 0;border-bottom:1px solid var(--rule2);font-family:var(--mono);font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.dl div:nth-child(odd){padding-right:12px;border-right:1px solid var(--rule2)}
+.dl div:nth-child(even){padding-left:12px}
+.dl span{color:var(--ink2);font-size:11px;letter-spacing:.05em;text-transform:uppercase;align-self:center}
+.acts{display:flex;gap:8px;margin-top:12px}
+.acts a,.acts button{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;text-decoration:none;border-radius:var(--r);font-size:14px}
+.acts a{background:var(--ink);color:var(--ground);font-weight:600}
+.note{font-size:13px;color:var(--ink2);margin:10px 0 0;padding-left:10px;border-left:2px solid var(--rule)}
+.flags{margin:10px 0 0;padding:0;list-style:none}
+.flags li{font-size:12.5px;padding:5px 0 5px 18px;position:relative;color:var(--ink2);border-top:1px dotted var(--rule2)}
+.flags li:before{content:"!";position:absolute;left:0;top:5px;font-family:var(--mono);font-weight:600;color:var(--amber)}
+.flags li.bad:before{color:var(--flag)}
+
+/* ---------- misc ---------- */
+.callout{background:var(--soft);border-left:4px solid var(--parf);padding:11px 12px;font-size:12.5px;line-height:1.55;color:var(--ink2);margin:12px 0}
+.callout b{color:var(--ink)}
+.empty{text-align:center;padding:34px 16px;color:var(--ink2)}
+.empty .big{font-family:var(--cond);font-weight:700;font-size:21px;color:var(--ink);margin-bottom:6px}
+.rowlbl{display:flex;justify-content:space-between;align-items:baseline}
+.rowlbl .v{font-family:var(--mono);font-size:13px;font-weight:500}
+input[type=range]{min-height:30px;padding:0;border:0;background:none}
+.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+.tbl th,.tbl td{border:1px solid var(--rule2);padding:7px 6px;text-align:right;white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+.tbl thead th{background:var(--soft);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;color:var(--ink2)}
+.tbl .best{color:var(--parf);font-weight:600}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:12px -14px 0;padding:0 14px}
+details{border-top:1px solid var(--rule2);padding:11px 0}
+summary{font-family:var(--cond);font-weight:600;font-size:15px;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"+";font-family:var(--mono);color:var(--ink2)}
+details[open] summary:after{content:"–"}
+.stack>*+*{margin-top:8px}
+
+/* ---------- tab bar: console buttons ---------- */
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:3px solid var(--ink);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20;
+  transition:background-color var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+#navBar{position:absolute;top:-3px;left:0;height:3px;background:var(--parf);
+  transition:transform .38s var(--ease),width .38s var(--ease),background-color var(--dur) var(--ease);pointer-events:none;box-shadow:0 0 6px var(--parf)}
+nav button{flex:1;background:none;transition:color .25s var(--ease);color:var(--ink2);border:0;border-radius:0;min-height:60px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-weight:600;box-shadow:none}
+nav button .g{font-family:var(--pixel);font-size:14px;letter-spacing:0;line-height:1;color:var(--ink2)}
+nav button[aria-selected="true"]{color:var(--ink)}
+nav button[aria-selected="true"] .g{transform:translateY(-2px) scale(1.1);color:var(--parf)}
+nav button .g{transition:transform .3s var(--ease),color .25s var(--ease)}
+nav button:active{transform:none}
+nav button:active .g{transform:scale(.9)}
+.qurl{display:block;font-size:10.5px;color:var(--ink2);margin-top:4px;word-break:break-all;line-height:1.4}
+.unitprev{margin-top:12px}
+.uprow{display:flex;align-items:baseline;gap:8px;font-family:var(--mono);font-size:12px;padding:7px 0;border-top:1px solid var(--rule2)}
+.uprow span{flex:1;color:var(--ink2);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+.uprow b{font-weight:600}
+.uprow i{font-style:normal;color:var(--parf);font-weight:600}
+.uwarn{font-family:var(--mono);font-size:10.5px;color:var(--amber);padding:0 0 7px;line-height:1.4}
+.qrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--rule2)}
+.qrow:last-of-type{border-bottom:1px solid var(--rule2)}
+.qlbl{flex:1;font-family:var(--mono);font-size:13px;line-height:1.35}
+.qgo{flex:0 0 auto;background:var(--parf);color:var(--card);text-decoration:none;font-family:var(--sans);font-weight:600;font-size:13px;padding:10px 14px;border-radius:var(--r);min-height:40px;display:flex;align-items:center;border:2px solid var(--ink);box-shadow:2px 2px 0 0 var(--ink)}
+.qgo:active{transform:translate(2px,2px);box-shadow:none}
+section{animation:secIn var(--dur) var(--ease) both}
+@keyframes secIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.car{animation:cardIn .4s var(--ease) both}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(.995)}to{opacity:1;transform:none}}
+.car:nth-child(1){animation-delay:.02s}.car:nth-child(2){animation-delay:.07s}
+.car:nth-child(3){animation-delay:.12s}.car:nth-child(4){animation-delay:.17s}
+.car:nth-child(5){animation-delay:.22s}.car:nth-child(n+6){animation-delay:.26s}
+.qrow{animation:cardIn .34s var(--ease) both}
+.qrow:nth-child(1){animation-delay:.02s}.qrow:nth-child(2){animation-delay:.05s}
+.qrow:nth-child(3){animation-delay:.08s}.qrow:nth-child(4){animation-delay:.11s}
+.qrow:nth-child(n+5){animation-delay:.14s}
+.hide{display:none!important}
+.sheet{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .28s var(--ease)}
+.sheet.on{opacity:1;pointer-events:auto}
+.sheet .inner{background:var(--card);width:100%;max-width:720px;border-radius:14px 14px 0 0;border:3px solid var(--ink);border-bottom:0;padding:20px 16px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(100%);transition:transform .38s var(--ease);max-height:86vh;overflow:auto}
+.sheet.on .inner{transform:none}
+.grab{width:38px;height:4px;background:var(--rule);border-radius:99px;margin:0 auto 16px}
+.swatches{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.sw{display:flex;align-items:center;gap:11px;padding:12px;border-radius:10px;border:2px solid var(--rule2);background:var(--soft);
+  width:100%;min-height:56px;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink);text-align:left;
+  transition:transform .14s var(--ease),border-color .2s var(--ease),box-shadow .14s var(--ease)}
+.sw:active{transform:translate(2px,2px);box-shadow:none}
+.sw[aria-pressed="true"]{border-color:var(--ink);box-shadow:2px 2px 0 0 var(--ink)}
+.sw .dots{display:flex;flex:0 0 auto}
+.sw .dots i{width:15px;height:15px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.16);margin-left:-5px}
+.sw .dots i:first-child{margin-left:0}
+.sw .tick{margin-left:auto;font-family:var(--mono);opacity:0;transition:opacity .2s}
+.sw[aria-pressed="true"] .tick{opacity:1}
+.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:calc(78px + env(safe-area-inset-bottom));background:var(--ink);color:var(--ground);font-family:var(--mono);font-size:12.5px;padding:11px 16px;border-radius:2px;border:2px solid var(--parf);opacity:0;transition:.22s;pointer-events:none;z-index:40;max-width:88%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.foot{font-family:var(--mono);font-size:10.5px;color:var(--ink2);text-align:center;padding:24px 0 8px;line-height:1.7}
+@media(max-width:400px){.two,.three{grid-template-columns:1fr}.dl{grid-template-columns:1fr}.dl div:nth-child(odd){padding-right:0;border-right:0}.dl div:nth-child(even){padding-left:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <span class="webline" aria-hidden="true"></span>
+  <div class="eyebrow"><span id="stamp">Singapore · used car</span><button class="tbtn" id="themeBtn">Theme</button></div>
+  <h1>Car Scout</h1>
+  <div class="sub">Depreciation is the rent. Paper value is the deposit.</div>
+</header>
+
+<!-- ============ HUNT ============ -->
+<section id="p-hunt">
+  <div class="panel">
+    <h2>Models</h2>
+    <p class="hint">Tap to select as many as you like. Selected models turn dark.</p>
+    <div class="chips" id="modelChips" style="margin-top:10px"></div>
+    <div class="row" style="margin-top:10px">
+      <input id="newModel" placeholder="Add a model" style="flex:2">
+      <button class="ghost" id="addModel" style="flex:1">Add</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Vehicle types</h2>
+    <p class="hint">Multi-select. Pick truck and sedan and SUV together if that's the hunt.</p>
+    <div class="chips" id="typeChips" style="margin-top:10px"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="typeAll" style="flex:1">Select all</button>
+      <button class="ghost" id="typeNone" style="flex:1">Clear</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>COE status</h2>
+    <p class="hint">Multi-select. Both selected means you don't mind either.</p>
+    <div class="chips" id="ageChips" style="margin-top:10px">
+      <button class="chip" data-age="parf">PARF car (under 10 yrs)</button>
+      <button class="chip" data-age="renewed">Renewed COE</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Numbers</h2>
+    <div class="two">
+      <div class="field"><label for="fPrice">Max price</label><input id="fPrice" type="number" inputmode="numeric" placeholder="60000"></div>
+      <div class="field"><label for="fDep">Max depreciation /yr</label><input id="fDep" type="number" inputmode="numeric" placeholder="14000"></div>
+      <div class="field"><label for="fCoeMin">Min COE left (yrs)</label><input id="fCoeMin" type="number" inputmode="numeric" step="0.5" placeholder="2"></div>
+      <div class="field"><label for="fCoeMax">Max COE left (yrs)</label><input id="fCoeMax" type="number" inputmode="numeric" step="0.5" placeholder="10"></div>
+      <div class="field"><label for="fKm">Max mileage (km)</label><input id="fKm" type="number" inputmode="numeric" placeholder="120000"></div>
+      <div class="field"><label for="fOwners">Max no. of owners</label><input id="fOwners" type="number" inputmode="numeric" min="1" step="1" placeholder="2"></div>
+      <div class="field"><label for="fSort">Sort by</label>
+        <select id="fSort"><option value="DEP_ASC">Lowest depreciation</option><option value="PR_ASC">Lowest price</option><option value="RGD_DESC">Newest reg</option><option value="MI_ASC">Lowest mileage</option></select></div>
+    </div>
+    <details id="unitsBox" style="margin-top:12px">
+      <summary>What gets sent to SGCarmart</summary>
+      <p class="hint" style="margin-top:8px">SGCarmart reads price and depreciation in thousands. Your figures are converted before the search runs. If the site ever changes, untick a box here.</p>
+      <div class="chips" style="margin-top:10px">
+        <button class="chip" id="uMoney" data-u="money">Price &amp; dep in thousands</button>
+        <button class="chip" id="uKm" data-u="km">Mileage in thousands</button>
+      </div>
+      <div id="unitsPreview" class="unitprev"></div>
+    </details>
+    <button style="margin-top:14px" id="searchBtn">Build searches</button>
+  </div>
+
+  <div class="panel" id="queuePanel">
+    <h2>Your searches</h2>
+    <p class="hint" id="queueHint">Pick models and vehicle types above, then tap Build searches.</p>
+    <div id="queueWarn"></div>
+    <div id="queue" style="margin-top:4px"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Saved hunts</h2>
+    <p class="hint">Save your whole setup — models, types, COE status, numbers — under a name so you can rerun it next quarter without rebuilding it.</p>
+    <button class="ghost" style="margin-top:10px" id="saveHunt">Save current setup as a hunt</button>
+    <div id="huntList" style="margin-top:12px"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Saved search presets</h2>
+    <p class="hint">Filter on sgcarmart.com yourself, copy the URL, save it here. Presets always work.</p>
+    <div class="field"><label for="psName">Name</label><input id="psName" placeholder="Cerato · dep under 12k"></div>
+    <div class="field"><label for="psUrl">SGCarmart URL</label><input id="psUrl" placeholder="https://www.sgcarmart.com/..."></div>
+    <div class="row" style="margin-top:10px"><button class="ghost" id="psPaste">Paste</button><button id="psSave">Save preset</button></div>
+    <div class="chips" id="presetChips" style="margin-top:12px"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Calibrate SGCarmart</h2>
+    <p class="hint">This app can't fetch sgcarmart.com to verify its own links — it's Cloudflare-gated and Singapore-only. So verify from your phone instead: on sgcarmart.com, set <b>exactly one</b> filter, copy the URL, and paste both the plain URL and the one-filter URL below. The app diffs them to find the real parameter — no guessing.</p>
+    <div class="field"><label for="calKind">What are you calibrating?</label><select id="calKind"></select></div>
+    <p class="hint" id="calBaseNow" style="margin-top:8px"></p>
+    <div class="field"><label for="calBaseUrl">Plain URL — sgcarmart.com search with NO filters set</label><input id="calBaseUrl" placeholder="https://www.sgcarmart.com/used_cars/listing.php"></div>
+    <div class="row" style="margin-top:8px"><button class="ghost" id="calPasteBase">Paste</button></div>
+    <div class="field" id="calValWrap"><label for="calVal">The value you typed on the site</label><input id="calVal" type="number" inputmode="numeric" placeholder="e.g. 50000"></div>
+    <div class="field"><label for="calFilledUrl">URL after setting ONLY that one filter</label><input id="calFilledUrl" placeholder="https://www.sgcarmart.com/used_cars/listing.php?..."></div>
+    <div class="row" style="margin-top:8px"><button class="ghost" id="calPasteFilled">Paste</button><button id="calDetect">Detect &amp; save</button></div>
+    <div id="calStatus" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<!-- ============ ADD ============ -->
+<section id="p-add" class="hide">
+  <div class="panel">
+    <h2>Read a listing</h2>
+    <p class="hint">On the SGCarmart ad, select the details block and copy it. Paste below and the figures get pulled out for you.</p>
+    <div class="field"><label for="blob">Pasted listing text</label><textarea id="blob" placeholder="Price $52,800&#10;Depreciation $9,980 /yr&#10;Reg Date 15-Mar-2019&#10;Mileage 78,000 km&#10;OMV $18,204&#10;ARF $19,020&#10;No. of Owners 1"></textarea></div>
+    <div class="row" style="margin-top:10px"><button class="ghost" id="blobPaste">Paste</button><button id="blobRead">Read figures</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Car details</h2>
+    <div class="field"><label for="aName">Name</label><input id="aName" placeholder="Kia Cerato 1.6 EX" style="font-family:var(--sans)"></div>
+    <div class="field"><label for="aUrl">SGCarmart URL</label><input id="aUrl" placeholder="https://www.sgcarmart.com/..."></div>
+    <div class="two">
+      <div class="field"><label for="aPrice">Asking price</label><input id="aPrice" type="number" inputmode="numeric"></div>
+      <div class="field"><label for="aDep">Listed dep /yr</label><input id="aDep" type="number" inputmode="numeric"></div>
+      <div class="field"><label for="aReg">First registered</label><input id="aReg" type="date"></div>
+      <div class="field"><label for="aKm">Mileage (km)</label><input id="aKm" type="number" inputmode="numeric"></div>
+      <div class="field"><label for="aArf">ARF paid</label><input id="aArf" type="number" inputmode="numeric"></div>
+      <div class="field"><label for="aCoe">COE paid (QP)</label><input id="aCoe" type="number" inputmode="numeric"></div>
+      <div class="field"><label for="aOwners">Previous owners</label><input id="aOwners" type="number" inputmode="numeric"></div>
+      <div class="field"><label for="aTax">Road tax /yr</label><input id="aTax" type="number" inputmode="numeric"></div>
+      <div class="field"><label for="aDereg">Dereg value as listed</label><input id="aDereg" type="number" inputmode="numeric" placeholder="optional cross-check"></div>
+    </div>
+    <div class="field"><label for="aCoeType">COE status</label>
+      <select id="aCoeType"><option value="original">Original COE (PARF eligible)</option><option value="renewed10">Renewed 10-yr COE</option><option value="renewed5">Renewed 5-yr COE (no rebate)</option></select></div>
+    <div class="field"><label for="aNotes">Notes</label><textarea id="aNotes" style="min-height:64px" placeholder="Dealer, accident-free claim, sunroof, service records..."></textarea></div>
+    <div class="row" style="margin-top:12px"><button class="ghost" id="aClear">Clear</button><button id="aSave">Save to shortlist</button></div>
+    <div class="callout">ARF is on the vehicle log card — ask the dealer for a photo of it. Without ARF the app can't work out what you get back at the end, which is the whole point of the exercise.</div>
+  </div>
+</section>
+
+<!-- ============ SHORTLIST ============ -->
+<section id="p-list" class="hide">
+  <div class="panel" style="padding:12px 14px">
+    <div class="two">
+      <div><label for="sSort">Order by</label><select id="sSort"><option value="score">Decision score</option><option value="eff">True dep /yr</option><option value="price">Price</option><option value="new">Recently added</option></select></div>
+      <div><span class="lbl">Show</span><div class="chips" id="sFilterChips">
+        <button class="chip" data-sf="original">PARF</button>
+        <button class="chip" data-sf="renewed">Renewed</button>
+      </div></div>
+    </div>
+  </div>
+  <div id="listOut"></div>
+</section>
+
+<!-- ============ COMPARE ============ -->
+<section id="p-cmp" class="hide">
+  <div class="panel">
+    <h2>What actually matters to you</h2>
+    <p class="hint">Move these and the shortlist reorders. The score is only as good as these weights, so set them once, honestly.</p>
+    <div id="weights" class="stack" style="margin-top:14px"></div>
+  </div>
+  <div class="panel">
+    <h2>Side by side</h2>
+    <p class="hint">Best figure in each row is marked. A score only means something between cars of the same kind — put a renewed-COE car next to PARF cars and it will flatter the renewed one, because it has no rebate to lose.</p>
+    <div class="scroll"><table class="tbl" id="cmpTbl"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Running cost check</h2>
+    <p class="hint">Depreciation is the biggest line but never the only one. Set your own numbers to see the real monthly figure on each car.</p>
+    <div class="two" style="margin-top:8px">
+      <div class="field"><label for="cKm">Your km / year</label><input id="cKm" type="number" inputmode="numeric" value="15000"></div>
+      <div class="field"><label for="cFuel">Petrol $/litre</label><input id="cFuel" type="number" step="0.01" inputmode="decimal" value="2.75"></div>
+      <div class="field"><label for="cIns">Insurance /yr</label><input id="cIns" type="number" inputmode="numeric" value="1400"></div>
+      <div class="field"><label for="cPark">Parking /month</label><input id="cPark" type="number" inputmode="numeric" value="130"></div>
+      <div class="field"><label for="cMaint">Servicing /yr</label><input id="cMaint" type="number" inputmode="numeric" value="900"></div>
+      <div class="field"><label for="cKmL">Economy km/litre</label><input id="cKmL" type="number" step="0.1" inputmode="decimal" value="14"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TOOLS ============ -->
+<section id="p-tools" class="hide">
+  <div class="panel">
+    <h2>Paper value calculator</h2>
+    <p class="hint">What LTA hands back if you deregister on a given date.</p>
+    <div class="two">
+      <div class="field"><label for="kReg">First registered</label><input id="kReg" type="date"></div>
+      <div class="field"><label for="kDereg">Deregister on</label><input id="kDereg" type="date"></div>
+      <div class="field"><label for="kArf">ARF paid</label><input id="kArf" type="number" inputmode="numeric" placeholder="19020"></div>
+      <div class="field"><label for="kCoe">COE paid (QP)</label><input id="kCoe" type="number" inputmode="numeric" placeholder="38000"></div>
+    </div>
+    <div id="kOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Quick capture</h2>
+    <p class="hint">A bookmarklet: tap it while looking at any SGCarmart listing and it copies the URL plus the whole page's text to your clipboard, ready to paste straight into <b>Add → Read a listing</b>.</p>
+    <p class="hint" style="margin-top:10px"><b>iOS Safari setup (once):</b> bookmark any page → Bookmarks → Edit → tap the new bookmark → replace its URL with the code below → rename it "Capture".</p>
+    <div class="field"><label for="bmCode">Bookmarklet code — copy this</label><textarea id="bmCode" readonly style="min-height:70px;font-size:11px">javascript:(function(){try{var t=(location.href+"\n\n"+document.body.innerText).slice(0,6000);navigator.clipboard.writeText(t).then(function(){alert('Copied — open Car Scout → Add → paste')});}catch(e){alert('Select the listing block and copy manually instead');}})();</textarea></div>
+    <button class="ghost" id="bmCopy" style="margin-top:8px">Copy bookmarklet code</button>
+  </div>
+
+  <div class="panel">
+    <h2>Back up your shortlist</h2>
+    <p class="hint">Everything lives in this browser only. Clearing Safari data wipes it — so download a copy now and then.</p>
+    <div class="row" style="margin-top:10px"><button class="ghost" id="exp">Download backup</button><button class="ghost" id="impBtn">Restore</button></div>
+    <input type="file" id="impFile" accept="application/json" class="hide">
+    <div class="field"><button class="danger" id="wipe">Delete everything</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>How to read the numbers</h2>
+    <details><summary>Listed dep vs true dep</summary><p class="hint">A dealer's depreciation figure divides the price by whatever period flatters the car. This app recomputes it as <b>(price − what you get back at the end) ÷ years you actually get</b>. On a PARF car the two are usually close. On a renewed-COE car the listed figure is often much kinder than reality, because there's no ARF rebate waiting at the end.</p></details>
+    <details><summary>PARF schedule changed in Feb 2026</summary><p class="hint">Cars first registered before 13 Feb 2026 keep the old schedule: 75% of ARF back if deregistered under 5 years old, stepping down 5 points a year to 50% at 9–10 years, nothing after 10. Cars registered from 13 Feb 2026 get a far thinner 30%-down-to-5% schedule. Rebate caps: none before 15 Feb 2023, $60,000 from then, $30,000 from Feb 2026. Every used car you're looking at now is on the old schedule.</p></details>
+    <details><summary>The 10-year cliff</summary><p class="hint">At 10 years the ARF rebate goes to zero and you either scrap or pay PQP to renew — which in 2026 has been running near new-COE money. A car with 2 years left is cheap because you're buying 2 years and a scrap ticket. That's fine if you've decided that's what you want; it's a trap if you assumed you'd keep it.</p></details>
+    <details><summary>Mileage sanity</summary><p class="hint">Roughly 15,000–17,000 km a year is normal in Singapore. Well under that on an older car can mean long idle spells rather than gentle use; well over usually means private-hire history. The app flags both.</p></details>
+    <div class="callout">Rebate figures here are estimates from LTA's published schedule. Before you commit money, check the actual car on OneMotoring's PARF/COE rebate enquiry — that's the number that binds.</div>
+  </div>
+</section>
+
+<div class="foot">SG Car Scout · log card edition<br>Personal tool · figures are estimates, not advice</div>
+</div>
+
+<div class="sheet" id="themeSheet" role="dialog" aria-modal="true" aria-label="Choose a theme">
+  <div class="inner">
+    <div class="grab"></div>
+    <h2>Theme</h2>
+    <p class="hint">Nine looks. Your pick is remembered.</p>
+    <div class="swatches" id="swatches"></div>
+    <div class="fxrow">
+      <div><div class="fxlbl">Full FX</div><div class="fxhint">Sound + extra comic animation. Best with Web-Slinger.</div></div>
+      <button class="fxswitch" id="fxSwitch" aria-pressed="false" aria-label="Toggle full FX"></button>
+    </div>
+    <button class="ghost" id="sheetClose" style="margin-top:16px">Done</button>
+  </div>
+</div>
+
+<nav role="tablist">
+  <span id="navBar"></span>
+  <button role="tab" data-p="hunt" aria-selected="true"><span class="g">⌕</span>Hunt</button>
+  <button role="tab" data-p="add" aria-selected="false"><span class="g">+</span>Add</button>
+  <button role="tab" data-p="list" aria-selected="false"><span class="g">≡</span>Shortlist <span id="cnt" class="mono"></span></button>
+  <button role="tab" data-p="cmp" aria-selected="false"><span class="g">⇄</span>Compare</button>
+  <button role="tab" data-p="tools" aria-selected="false"><span class="g">§</span>Tools</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var K={cars:"cs3_cars",models:"cs3_models",presets:"cs3_presets",w:"cs3_weights",theme:"cs3_theme",filters:"cs3_filters",run:"cs3_run",units:"cs3_units",types:"cs3_types",selT:"cs3_selT",selM:"cs3_selM",selA:"cs3_selA",sFil:"cs3_sfil",calib:"cs4_calib",hunts:"cs4_hunts"};
+
+/* ---------- storage ---------- */
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast("Storage full or blocked")}}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function toast(m){var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("on")},2300)}
+function money(n){return n==null||isNaN(n)?"—":"$"+Math.round(n).toLocaleString("en-SG")}
+function num(v){var n=parseFloat(String(v).replace(/[^0-9.\-]/g,""));return isNaN(n)?null:n}
+
+/* ---------- PARF / COE maths ----------
+   Old schedule applies to cars first registered before 13 Feb 2026. */
+var SCHED_OLD=[[5,.75],[6,.70],[7,.65],[8,.60],[9,.55],[10,.50]];
+var SCHED_NEW=[[5,.30],[6,.25],[7,.20],[8,.15],[9,.10],[10,.05]];
+var CUT_NEW=new Date("2026-02-13"), CUT_CAP=new Date("2023-02-15");
+
+function ageYears(reg,at){return (at-reg)/(365.25*24*3600*1000)}
+function parfPct(reg,at){
+  var a=ageYears(reg,at); if(a>=10||a<0) return 0;
+  var s=(reg>=CUT_NEW)?SCHED_NEW:SCHED_OLD;
+  for(var i=0;i<s.length;i++){ if(a<s[i][0]) return s[i][1]; }
+  return 0;
+}
+function parfCap(reg){ if(reg<CUT_CAP) return Infinity; if(reg<CUT_NEW) return 60000; return 30000 }
+function parfRebate(reg,at,arf){
+  if(!arf) return null;
+  return Math.min(arf*parfPct(reg,at), parfCap(reg));
+}
+/* COE rebate = QP x months left / 120 */
+function coeRebate(reg,at,qp,type){
+  if(!qp) return null;
+  if(type==="renewed5") return 0;                       // 5-yr renewals earn no rebate
+  var expiry=coeExpiry(reg,type);
+  var months=(expiry-at)/(30.4375*24*3600*1000);
+  if(months<=0) return 0;
+  return qp*Math.min(months,120)/120;
+}
+function coeExpiry(reg,type){
+  var y=type==="renewed5"?15:(type==="renewed10"?20:10);
+  var d=new Date(reg.getTime()); d.setFullYear(d.getFullYear()+y); return d;
+}
+
+/* Full derived picture for one saved car */
+function derive(c){
+  var o={}, now=new Date();
+  var reg=c.reg?new Date(c.reg):null;
+  o.reg=reg;
+  if(!reg) return o;
+  o.age=ageYears(reg,now);
+  o.expiry=coeExpiry(reg,c.coeType||"original");
+  o.yearsLeft=Math.max(0,(o.expiry-now)/(365.25*24*3600*1000));
+  o.parfCar=(c.coeType||"original")==="original";
+  // paper value if you deregister today
+  o.parfNow=o.parfCar?parfRebate(reg,now,c.arf):0;
+  o.coeNow=coeRebate(reg,now,c.coe,c.coeType||"original");
+  o.deregNow=(o.parfNow||0)+(o.coeNow||0);
+  // paper value the day before COE expires (COE rebate ~0 by then)
+  var eve=new Date(o.expiry.getTime()-86400000);
+  o.parfEnd=o.parfCar?parfRebate(reg,eve,c.arf):0;
+  o.deregEnd=o.parfEnd||0;
+  // true depreciation: price minus what comes back, over the years you get
+  if(c.price&&o.yearsLeft>0.1){
+    o.effDep=(c.price-o.deregEnd)/o.yearsLeft;
+    o.burn=c.price-o.deregEnd;
+  }
+  if(c.km&&o.age>0.3) o.kmYr=c.km/o.age;
+  return o;
+}
+
+/* Red flags — the things worth asking the dealer about */
+function flags(c,d){
+  var f=[];
+  if(d.kmYr!=null){
+    if(d.kmYr>25000) f.push(["bad",Math.round(d.kmYr).toLocaleString()+" km/yr — very high, ask if it was private hire"]);
+    else if(d.kmYr>19000) f.push(["","Above-average mileage at "+Math.round(d.kmYr).toLocaleString()+" km/yr"]);
+    else if(d.kmYr<6000&&d.age>3) f.push(["","Unusually low at "+Math.round(d.kmYr).toLocaleString()+" km/yr — check for long idle periods"]);
+  }
+  if(c.owners>=4) f.push(["bad",c.owners+" previous owners"]);
+  else if(c.owners===3) f.push(["","Three previous owners"]);
+  if(d.yearsLeft!=null&&d.yearsLeft<2.5&&d.yearsLeft>0) f.push(["bad","Only "+d.yearsLeft.toFixed(1)+" yrs of COE — scrap or pay PQP after that"]);
+  if(!d.parfCar) f.push(["","Renewed COE: no ARF rebate at the end, so nothing comes back"]);
+  if(!c.arf&&d.parfCar) f.push(["","No ARF entered — true depreciation can't be worked out. Ask for the log card"]);
+  if(c.deregListed&&d.deregNow){
+    var diff=Math.abs(c.deregListed-d.deregNow)/c.deregListed;
+    if(diff>0.15) f.push(["","Listed dereg value "+money(c.deregListed)+" vs "+money(d.deregNow)+" estimated here — check the ARF and COE figures on the log card"]);
+  }
+  if(c.dep&&d.effDep&&d.effDep>c.dep*1.18) f.push(["bad","Listed dep "+money(c.dep)+" looks optimistic — works out closer to "+money(d.effDep)]);
+  if(d.age>=9.2&&d.age<10&&d.parfCar) f.push(["","Crosses 10 yrs in "+Math.round((10-d.age)*12)+" months, when the ARF rebate disappears"]);
+  return f;
+}
+
+/* ---------- weights & scoring ---------- */
+var WDEF=[
+  {k:"eff",label:"Low true depreciation",w:5},
+  {k:"price",label:"Low cash outlay",w:3},
+  {k:"km",label:"Low mileage",w:3},
+  {k:"left",label:"Long COE remaining",w:4},
+  {k:"own",label:"Few previous owners",w:2}
+];
+function weights(){ var s=load(K.w,null); if(!s) return WDEF.map(function(x){return Object.assign({},x)});
+  return WDEF.map(function(d){var f=s.find(function(x){return x.k===d.k});return Object.assign({},d,f?{w:f.w}:{})}) }
+
+function scoreAll(cars){
+  var rows=cars.map(function(c){var d=derive(c);return{c:c,d:d,m:{
+    eff:d.effDep!=null?-d.effDep:null, price:c.price?-c.price:null,
+    km:d.kmYr!=null?-d.kmYr:null, left:d.yearsLeft!=null?d.yearsLeft:null,
+    own:c.owners!=null?-c.owners:null}}});
+  var ws=weights(), keys=ws.map(function(w){return w.k});
+  var rng={};
+  keys.forEach(function(k){
+    var v=rows.map(function(r){return r.m[k]}).filter(function(x){return x!=null});
+    rng[k]=v.length?[Math.min.apply(null,v),Math.max.apply(null,v)]:null;
+  });
+  rows.forEach(function(r){
+    var tot=0,used=0;
+    ws.forEach(function(w){
+      if(!w.w||r.m[w.k]==null||!rng[w.k])return;
+      var lo=rng[w.k][0],hi=rng[w.k][1];
+      var n=hi===lo?1:(r.m[w.k]-lo)/(hi-lo);
+      tot+=n*w.w; used+=w.w;
+    });
+    r.score=used?Math.round(tot/used*100):null;
+  });
+  return rows;
+}
+
+/* ---------- value strip (signature) ---------- */
+function strip(d,price){
+  if(!price||d.deregEnd==null||d.effDep==null) return "";
+  var keep=Math.max(0,d.deregEnd), burn=Math.max(0,price-keep);
+  var kp=Math.round(keep/price*100), bp=100-kp;
+  return '<div class="strip"><div class="bar">'+
+    '<div class="seg burn" style="flex-basis:'+bp+'%"></div>'+
+    '<div class="seg keep" style="flex-basis:'+kp+'%"></div></div>'+
+    '<div class="legend"><div>Gone by '+d.expiry.getFullYear()+'<b class="mono">'+money(burn)+'</b></div>'+
+    '<div class="r">Back at '+d.expiry.getFullYear()+'<b class="mono">'+money(keep)+'</b></div></div></div>';
+}
+
+/* ---------- render shortlist ---------- */
+function renderList(){
+  var cars=load(K.cars,[]), fl=load(K.sFil,["original","renewed"]), srt=$("sSort").value;
+  $("cnt").textContent=cars.length?"("+cars.length+")":"";
+  var rows=scoreAll(cars).filter(function(r){
+    var kind=(r.c.coeType||"original")==="original"?"original":"renewed";
+    return fl.indexOf(kind)>=0;
+  });
+  if(srt==="score") rows.sort(function(a,b){return (b.score==null?-1:b.score)-(a.score==null?-1:a.score)});
+  if(srt==="eff") rows.sort(function(a,b){return (a.d.effDep==null?1e9:a.d.effDep)-(b.d.effDep==null?1e9:b.d.effDep)});
+  if(srt==="price") rows.sort(function(a,b){return (a.c.price||1e9)-(b.c.price||1e9)});
+  if(srt==="new") rows.sort(function(a,b){return b.c.id-a.c.id});
+
+  if(!rows.length){
+    $("listOut").innerHTML='<div class="empty"><div class="big">'+(cars.length?"Nothing matches that filter":"No cars yet")+'</div>'+
+      (cars.length?'<p class="hint">Try showing all.</p>':'<p class="hint">Search on Hunt, open a listing you like, copy its details, then paste them into Add.</p>')+'</div>';
+    return;
+  }
+  $("listOut").innerHTML=rows.map(function(r){
+    var c=r.c,d=r.d,run=runCost(c,d);
+    var fs=flags(c,d);
+    var tags=[];
+    if(d.parfCar&&d.age<10) tags.push(['good','PARF car']); else tags.push(['warn','Renewed COE']);
+    if(d.yearsLeft!=null) tags.push([d.yearsLeft<3?'bad':'', d.yearsLeft.toFixed(1)+' yrs COE left']);
+    if(d.age!=null) tags.push(['', d.age.toFixed(1)+' yrs old']);
+    if(c.owners!=null) tags.push(['', c.owners+' owner'+(c.owners===1?'':'s')]);
+    return '<article class="car">'+
+      '<div class="top"><div><div class="nm">'+esc(c.name)+'</div>'+
+        '<div class="hint mono" style="font-size:11px;margin-top:3px">'+(d.expiry?'COE to '+d.expiry.toLocaleDateString("en-SG",{month:"short",year:"numeric"}):'no reg date')+'</div></div>'+
+        (r.score!=null?'<div class="score">'+r.score+'<small>'+(fs.length?fs.filter(function(x){return x[0]==="bad"}).length?String(fs.length)+' CONCERNS':String(fs.length)+' TO CHECK':'SCORE')+'</small></div>':'')+'</div>'+
+      '<div class="tags">'+tags.map(function(t){return '<span class="tag '+t[0]+'">'+esc(t[1])+'</span>'}).join("")+'</div>'+
+      strip(d,c.price)+
+      '<div class="dl">'+
+        '<div><span>Price</span>'+money(c.price)+'</div>'+
+        '<div><span>True dep/yr</span>'+money(d.effDep)+'</div>'+
+        '<div><span>Listed dep</span>'+money(c.dep)+'</div>'+
+        '<div><span>Paper value now</span>'+money(d.deregNow||null)+'</div>'+
+        '<div><span>Mileage</span>'+(c.km?c.km.toLocaleString()+" km":"—")+'</div>'+
+        '<div><span>Per year</span>'+(d.kmYr?Math.round(d.kmYr).toLocaleString()+" km":"—")+'</div>'+
+        (run?'<div><span>All-in /month</span>'+money(run.month)+'</div><div><span>Of that, dep</span>'+money(run.depM)+'</div>':'')+
+      '</div>'+
+      (fs.length?'<ul class="flags">'+fs.map(function(f){return '<li class="'+f[0]+'">'+esc(f[1])+'</li>'}).join("")+'</ul>':'')+
+      (c.notes?'<p class="note">'+esc(c.notes)+'</p>':'')+
+      '<div class="acts">'+(c.url?'<a href="'+esc(c.url)+'" data-sg target="_blank" rel="noopener">Open listing</a>':'')+
+      '<button class="ghost" data-del="'+c.id+'">Remove</button></div>'+
+    '</article>';
+  }).join("");
+}
+
+/* ---------- running cost ---------- */
+function runCost(c,d){
+  if(d.effDep==null) return null;
+  var r=load(K.run,{km:15000,fuel:2.75,ins:1400,park:130,maint:900,kml:14});
+  var fuelY=(r.km/(r.kml||14))*r.fuel;
+  var yr=d.effDep+(c.tax||700)+r.ins+r.maint+fuelY+r.park*12;
+  return {year:yr,month:yr/12,depM:d.effDep/12};
+}
+function saveRun(){
+  save(K.run,{km:num($("cKm").value)||15000,fuel:num($("cFuel").value)||2.75,ins:num($("cIns").value)||0,
+    park:num($("cPark").value)||0,maint:num($("cMaint").value)||0,kml:num($("cKmL").value)||14});
+  renderList(); renderCmp();
+}
+
+/* ---------- compare ---------- */
+function renderWeights(){
+  var ws=weights();
+  $("weights").innerHTML=ws.map(function(w,i){
+    return '<div><div class="rowlbl"><label style="margin:0">'+esc(w.label)+'</label><span class="v" id="wv'+i+'">'+w.w+'</span></div>'+
+    '<input type="range" min="0" max="5" step="1" value="'+w.w+'" data-wi="'+i+'"></div>';
+  }).join("");
+}
+function renderCmp(){
+  var cars=load(K.cars,[]);
+  if(cars.length<2){$("cmpTbl").innerHTML='<tbody><tr><td style="border:0;padding:16px 0" class="hint">Add at least two cars to compare.</td></tr></tbody>';return}
+  var rows=scoreAll(cars).sort(function(a,b){return (b.score||0)-(a.score||0)});
+  var defs=[
+    ["Score",function(r){return r.score},1],
+    ["Price",function(r){return r.c.price},-1,money],
+    ["True dep /yr",function(r){return r.d.effDep},-1,money],
+    ["Listed dep",function(r){return r.c.dep},-1,money],
+    ["Paper value at end",function(r){return r.d.deregEnd},1,money],
+    ["COE yrs left",function(r){return r.d.yearsLeft},1,function(v){return v==null?"—":v.toFixed(1)}],
+    ["Age (yrs)",function(r){return r.d.age},-1,function(v){return v==null?"—":v.toFixed(1)}],
+    ["km / yr",function(r){return r.d.kmYr},-1,function(v){return v==null?"—":Math.round(v).toLocaleString()}],
+    ["Owners",function(r){return r.c.owners},-1],
+    ["All-in /month",function(r){var x=runCost(r.c,r.d);return x?x.month:null},-1,money]
+  ];
+  var h='<thead><tr><th>Metric</th>'+rows.map(function(r){return '<th>'+esc(r.c.name.length>18?r.c.name.slice(0,17)+"…":r.c.name)+'</th>'}).join("")+'</tr></thead><tbody>';
+  h+=defs.map(function(d){
+    var vals=rows.map(d[1]), fmt=d[3]||function(v){return v==null?"—":v.toLocaleString()};
+    var valid=vals.filter(function(v){return v!=null&&!isNaN(v)});
+    var best=valid.length?(d[2]>0?Math.max.apply(null,valid):Math.min.apply(null,valid)):null;
+    return '<tr><th>'+d[0]+'</th>'+vals.map(function(v){
+      return '<td'+(v!=null&&v===best&&valid.length>1?' class="best"':'')+'>'+fmt(v)+'</td>'}).join("")+'</tr>';
+  }).join("")+'</tbody>';
+  $("cmpTbl").innerHTML=h;
+}
+
+/* ---------- calculator ---------- */
+function renderCalc(){
+  var reg=$("kReg").value?new Date($("kReg").value):null;
+  var at=$("kDereg").value?new Date($("kDereg").value):new Date();
+  var arf=num($("kArf").value), qp=num($("kCoe").value);
+  if(!reg){$("kOut").innerHTML='<p class="hint" style="margin-top:14px">Enter the first registration date to begin.</p>';return}
+  var a=ageYears(reg,at), pct=parfPct(reg,at);
+  var p=arf?Math.min(arf*pct,parfCap(reg)):null, cr=coeRebate(reg,at,qp,"original");
+  var cap=parfCap(reg);
+  var next=null;
+  for(var y=1;y<=10;y++){ if(a<y){next=y;break} }
+  $("kOut").innerHTML='<div class="dl" style="margin-top:14px">'+
+    '<div><span>Age at dereg</span>'+a.toFixed(2)+' yrs</div>'+
+    '<div><span>PARF rate</span>'+Math.round(pct*100)+'%</div>'+
+    '<div><span>ARF rebate</span>'+money(p)+'</div>'+
+    '<div><span>COE rebate</span>'+money(cr)+'</div>'+
+    '<div><span>Total paper value</span>'+money((p||0)+(cr||0))+'</div>'+
+    '<div><span>Rebate cap</span>'+(cap===Infinity?"none":money(cap))+'</div></div>'+
+    (a>=10?'<div class="callout" style="border-color:var(--flag)"><b>Past 10 years.</b> No ARF rebate at all — only unused COE, if any.</div>':
+     next&&next<=10?'<div class="callout">Rate drops to '+Math.round(parfPct(reg,new Date(reg.getFullYear()+next,reg.getMonth(),reg.getDate()+1))*100)+'% once it turns '+next+'. Deregistering a day before that boundary keeps the higher rate.</div>':'')+
+    '<p class="hint" style="margin-top:10px">Estimate from LTA\'s published schedule. Confirm the real figure on OneMotoring.</p>';
+}
+
+/* ---------- paste parsing ---------- */
+function grab(t,labels,opts){
+  opts=opts||{};
+  for(var i=0;i<labels.length;i++){
+    var re=new RegExp(labels[i]+"[^0-9A-Za-z$]{0,12}\\$?\\s*([0-9][0-9,\\.]*)","i");
+    var m=t.match(re);
+    if(m) {var n=num(m[1]); if(n!=null&&(!opts.min||n>=opts.min)) return n}
+  }
+  return null;
+}
+function grabDate(t,labels){
+  for(var i=0;i<labels.length;i++){
+    var m=t.match(new RegExp(labels[i]+"[^0-9]{0,14}(\\d{1,2})[\\-\\/\\s]([A-Za-z]{3,9}|\\d{1,2})[\\-\\/\\s](\\d{4})","i"));
+    if(m){
+      var mo=isNaN(+m[2])?["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(m[2].slice(0,3).toLowerCase())+1:+m[2];
+      if(mo>0) return m[3]+"-"+String(mo).padStart(2,"0")+"-"+String(+m[1]).padStart(2,"0");
+    }
+  }
+  return null;
+}
+function readBlob(){
+  var t=$("blob").value; if(!t.trim()){toast("Paste the listing text first");return}
+  var got=[];
+  var set=function(id,v,tag){ if(v!=null&&v!==""){ $(id).value=v; got.push(tag) } };
+  var urlM=t.match(/https:\/\/(?:[a-z0-9-]+\.)*sgcarmart\.com\/\S+/i);
+  if(urlM&&!$("aUrl").value){ $("aUrl").value=urlM[0].replace(/[),.]+$/,""); got.push("listing URL") }
+  set("aPrice",grab(t,["price","asking"],{min:1000}),"price");
+  set("aDep",grab(t,["depreciation","depre"],{min:100}),"dep");
+  set("aKm",grab(t,["mileage","milage","odometer"],{min:100}),"mileage");
+  set("aArf",grab(t,["\\barf\\b"],{min:100}),"ARF");
+  var dv=grab(t,["dereg(?:istration)? value","paper value"],{min:100});
+  if(dv!=null){ $("aDereg").value=dv; got.push("dereg value") }
+  set("aOwners",grab(t,["no\\.? of owners","owners","previous owners"]),"owners");
+  set("aTax",grab(t,["road tax"],{min:50}),"road tax");
+  var reg=grabDate(t,["reg(?:istration)? date","registered","reg date"]);
+  set("aReg",reg,"reg date");
+  var om=grab(t,["omv"],{min:1000});
+  if(om&&!$("aArf").value){ toast("Found OMV but no ARF — enter ARF from the log card") }
+  if(/renew|extend/i.test(t)&&/coe/i.test(t)) $("aCoeType").value="renewed10";
+  if(!$("aName").value){
+    var lines=t.trim().split("\n").map(function(s){return s.trim()}).filter(Boolean);
+    var first=lines.find(function(l){return l.length<60&&!/\$/.test(l)&&!/^https?:\/\//i.test(l)});
+    if(first) $("aName").value=first;
+  }
+  toast(got.length?"Read "+got.length+" field"+(got.length===1?"":"s")+": "+got.join(", "):"Couldn't find figures — enter them by hand");
+}
+
+/* ---------- search URL / self-calibrating link engine ----------
+   SGCarmart is geofenced + Cloudflare-gated, so nothing outside Singapore can
+   verify its param names by fetching the site. Rather than guess harder, the
+   app ships with best-effort defaults and lets YOU calibrate each filter once
+   from your phone: set exactly one filter on sgcarmart.com, paste the
+   resulting URL next to the plain (no-filter) URL, and the app diffs the two
+   querystrings to find the real param — no guessing survives contact with
+   the actual site. See calibDiff() / the Calibrate panel. */
+var TYPES_DEFAULT=[
+  ["Sedan (mid-size)","12"],["Luxury sedan","11"],["Hatchback","10"],
+  ["SUV","6"],["MPV","5"],["Sports","9"],["Van","7"],["Truck","8"],
+  ["Hybrid","13"],["Electric","14"]
+];
+function defaultCalib(){
+  return {
+    base:"https://www.sgcarmart.com/used_cars/listing.php", verifiedBase:false,
+    p:{model:"MOD",price:"PR2",dep:"DP2",km:"MI2",coeMin:"COEL",coeMax:"COEH",owners:"OWN",regFrom:"RFR",regTo:"RTO",sort:"ORD",avl:"AVL",rpg:"RPG"},
+    verified:{model:false,price:false,dep:false,km:false,coeMin:false,coeMax:false,owners:false,regFrom:false,regTo:false},
+    scale:{price:1000,dep:1000,km:1},
+    veh:TYPES_DEFAULT.map(function(t){return{name:t[0],param:"VEH",value:t[1],verified:false}})
+  };
+}
+function calib(){
+  var c=load(K.calib,null); if(!c) return defaultCalib();
+  var d=defaultCalib();
+  c.p=Object.assign(d.p,c.p); c.verified=Object.assign(d.verified,c.verified); c.scale=Object.assign(d.scale,c.scale);
+  if(!c.veh||!c.veh.length) c.veh=d.veh;
+  d.veh.forEach(function(dv){ if(!c.veh.some(function(v){return v.name===dv.name})) c.veh.push(dv) });
+  return c;
+}
+/* One migration from the old per-type-only calibration store, if present. */
+(function migrateOldTypes(){
+  if(load(K.calib,null)) return;
+  var old=load(K.types,null); if(!old||!old.length) return;
+  var c=defaultCalib();
+  old.forEach(function(t){ var v=c.veh.find(function(x){return x.name===t[0]}); if(v&&t[1]!==v.value){v.value=t[1];v.verified=true} });
+  save(K.calib,c);
+})();
+
+/* Diff two real sgcarmart URLs (plain vs. one-filter-set) and return the
+   single param that changed, or null if 0 or >1 params differ. */
+function calibDiff(baseUrl,filledUrl){
+  try{
+    var bu=new URL(baseUrl.trim()), fu=new URL(filledUrl.trim());
+    if(!/sgcarmart\.com$/i.test(bu.hostname.replace(/^www\./,""))||!/sgcarmart\.com$/i.test(fu.hostname.replace(/^www\./,""))) return {err:"Both URLs must be on sgcarmart.com"};
+    var bk={}; bu.searchParams.forEach(function(v,k){bk[k]=v});
+    var diffs=[]; fu.searchParams.forEach(function(v,k){ if(bk[k]===undefined||bk[k]!==v) diffs.push([k,v]) });
+    if(!diffs.length) return {err:"No difference found — did you set a filter before copying the second URL?"};
+    if(diffs.length>1) return {err:"Found "+diffs.length+" changed params ("+diffs.map(function(d){return d[0]}).join(", ")+") — set ONLY that one filter, nothing else, then copy the URL"};
+    return {ok:true, param:diffs[0][0], value:diffs[0][1], origin:fu.origin+fu.pathname};
+  }catch(e){ return {err:"That doesn't look like a valid URL"} }
+}
+function calibApply(kind,rawValue,baseUrl,filledUrl){
+  var d=calibDiff(baseUrl,filledUrl); if(!d.ok) return d;
+  var c=calib();
+  c.base=d.origin; c.verifiedBase=true;
+  if(kind.indexOf("veh:")===0){
+    var name=kind.slice(4), v=c.veh.find(function(x){return x.name===name});
+    if(v){ v.param=d.param; v.value=d.value; v.verified=true }
+  } else {
+    c.p[kind]=d.param; c.verified[kind]=true;
+    if((kind==="price"||kind==="dep"||kind==="km")&&rawValue){
+      var raw=num(rawValue), pv=num(d.value);
+      if(raw&&pv) c.scale[kind]=(raw/pv)>=900?1000:1;
+    }
+  }
+  save(K.calib,c);
+  return {ok:true,param:d.param,value:d.value};
+}
+var MODELS_DEFAULT=["Honda Civic","Honda City","Kia Cerato","Kia Stonic","Mazda 3","Toyota Altis"];
+function getModels(){ var m=load(K.models,null); if(!m||!m.length){ m=MODELS_DEFAULT.slice(); save(K.models,m) } return m }
+function selTypes(){ return load(K.selT,[]) }
+function selModels(){ return load(K.selM,[]) }
+function selAge(){ return load(K.selA,["parf"]) }
+
+function buildUrl(model,vehName){
+  var f=readFilters(), c=calib();
+  var p=new URLSearchParams();
+  if(model) p.set(c.p.model,model);
+  p.set(c.p.avl,"2"); p.set(c.p.rpg,"40"); p.set(c.p.sort,f.sort);
+  if(vehName){ var v=c.veh.find(function(x){return x.name===vehName}); if(v) p.set(v.param,v.value) }
+  if(f.price) p.set(c.p.price,scaleOut(f.price,c.scale.price));
+  if(f.dep) p.set(c.p.dep,scaleOut(f.dep,c.scale.dep));
+  if(f.km) p.set(c.p.km,scaleOut(f.km,c.scale.km));
+  if(f.coeMin!=null) p.set(c.p.coeMin,String(f.coeMin));
+  if(f.coeMax!=null) p.set(c.p.coeMax,String(f.coeMax));
+  if(f.owners!=null) p.set(c.p.owners,String(f.owners));
+  var rb=regYearBound();
+  if(rb.from!=null) p.set(c.p.regFrom,String(rb.from));
+  if(rb.to!=null) p.set(c.p.regTo,String(rb.to));
+  return c.base+"?"+p.toString();
+}
+/* SGCarmart reads the price and depreciation filters in THOUSANDS by default:
+   PR2=90 means $90,000, so sending 90000 asks for ninety million. Divide
+   before sending. Ceil rather than round so a max filter never excludes a
+   car you asked for. Calibrating price/dep against a real URL overrides the
+   divisor automatically (see calibApply). */
+function units(){ var c=calib(); return {money:c.scale.price||1000, km:c.scale.km||1} }
+function scaleOut(v,div){
+  if(!div||div===1) return String(Math.round(v));
+  return String(Math.max(1,Math.ceil(v/div)));
+}
+function readFilters(){
+  var f={sort:$("fSort").value,price:num($("fPrice").value),dep:num($("fDep").value),
+    km:num($("fKm").value),coeMin:num($("fCoeMin").value),coeMax:num($("fCoeMax").value),
+    owners:num($("fOwners").value)};
+  save(K.filters,f);
+  return f;
+}
+/* "Years of COE left" does NOT distinguish PARF from renewed — a renewed car
+   deep into its second 10-year term can also show few years left. The real
+   test is registration age: an original (never-renewed) COE lasts exactly
+   10 years, so a PARF car must be registered within the last 10 years, and a
+   car on a renewed COE must be registered MORE than 10 years ago (renewal
+   only happens after the original term expires). So COE status is enforced
+   via a registration-year bound, independent of the coeMin/coeMax fields
+   above (those stay a separate, literal "years left" filter). */
+function regYearBound(){
+  var a=selAge(), y=new Date().getFullYear();
+  if(a.length===1&&a[0]==="parf") return {from:y-10};
+  if(a.length===1&&a[0]==="renewed") return {to:y-10};
+  return {};
+}
+/* One search per model x vehicle type. Combining several vehicle types into a
+   single SGCarmart URL isn't something we can verify from here, so each type
+   gets its own search rather than silently producing wrong results. */
+function buildQueue(){
+  var ms=selModels(), ts=selTypes(), out=[];
+  var models = ms.length?ms:[null];
+  var types  = ts.length?ts:[null];
+  models.forEach(function(m){
+    types.forEach(function(t){
+      out.push({label:[m,t].filter(Boolean).join(" \u00b7 ")||"All cars, your filters",url:buildUrl(m,t)});
+    });
+  });
+  return out;
+}
+function renderUnits(){
+  var u=units();
+  $("uMoney").setAttribute("aria-pressed", u.money===1000);
+  $("uKm").setAttribute("aria-pressed", u.km===1000);
+  var f=readFilters(), rows=[];
+  function row(label,val,param,div,fmt){
+    var out=scaleOut(val,div), actual=div>1?out*div:out;
+    var exact=Number(actual)===Math.round(val);
+    rows.push([label, fmt(val), param+"="+out, exact?"":"searches up to "+fmt(actual)+" — the filter only takes whole thousands"]);
+  }
+  var c=calib();
+  if(f.price) row("Max price",f.price,c.p.price,u.money,money);
+  if(f.dep) row("Max dep/yr",f.dep,c.p.dep,u.money,money);
+  if(f.km) row("Max mileage",f.km,c.p.km,u.km,function(v){return Number(v).toLocaleString()+" km"});
+  if(f.owners!=null) rows.push(["Max owners",String(f.owners),c.p.owners+"="+f.owners,c.verified.owners?"":"owners parameter is unverified — calibrate it below before trusting this link"]);
+  var rb=regYearBound();
+  if(rb.from!=null) rows.push(["PARF: reg. year from",String(rb.from),c.p.regFrom+"="+rb.from,c.verified.regFrom?"":"unverified — if this param doesn't exist on the real site, renewed-COE cars WILL slip into PARF-only results, as seen in testing"]);
+  if(rb.to!=null) rows.push(["Renewed: reg. year to",String(rb.to),c.p.regTo+"="+rb.to,c.verified.regTo?"":"unverified — calibrate this before trusting a renewed-COE-only search"]);
+  $("unitsPreview").innerHTML = rows.length
+    ? rows.map(function(r){return '<div class="uprow"><span>'+r[0]+'</span><b>'+esc(r[1])+'</b><i>'+esc(r[2])+'</i></div>'+
+        (r[3]?'<div class="uwarn">'+esc(r[3])+'</div>':'')}).join("")
+    : '<p class="hint">Enter a price or depreciation figure to see the conversion.</p>';
+}
+function renderQueue(){
+  renderUnits();
+  var q=buildQueue(), ms=selModels(), ts=selTypes();
+  var f=readFilters(), bits=[];
+  if(f.price) bits.push("under "+money(f.price));
+  if(f.dep) bits.push("dep under "+money(f.dep));
+  if(f.km) bits.push("under "+f.km.toLocaleString()+" km");
+  if(f.coeMin!=null) bits.push(f.coeMin+"+ yrs COE");
+  if(f.coeMax!=null) bits.push("max "+f.coeMax+" yrs COE");
+  if(f.owners!=null) bits.push("max "+f.owners+" owner"+(f.owners===1?"":"s"));
+  $("queueHint").innerHTML = q.length===1&&!ms.length&&!ts.length
+    ? "Nothing selected, so this searches everything with your numbers applied."
+    : q.length+" search"+(q.length===1?"":"es")+(bits.length?" \u00b7 "+esc(bits.join(", ")):"");
+  var c=calib(), rb=regYearBound(), warnKind=rb.from!=null?"regFrom":(rb.to!=null?"regTo":null);
+  $("queueWarn").innerHTML = (warnKind&&!c.verified[warnKind])
+    ? '<div class="callout" style="border-color:var(--flag)"><b>Unverified filter.</b> '+
+      (warnKind==="regFrom"?"\u201cPARF car\u201d is enforced by requiring a registration-year param this app hasn\u2019t confirmed exists on the real site yet. If it doesn\u2019t, renewed-COE cars will slip into these results \u2014 open the links and check the reg years before trusting them."
+        :"\u201cRenewed COE\u201d is enforced the same unverified way \u2014 check reg years on the results before trusting them.")+
+      ' Calibrate it in <b>Calibrate SGCarmart</b> below.</div>'
+    : "";
+  $("queue").innerHTML=q.map(function(x,i){
+    var qs=x.url.split("?")[1]||"";
+    return '<div class="qrow"><div class="qlbl">'+esc(x.label)+
+      '<span class="qurl">'+esc(qs)+'</span></div>'+
+      '<a class="qgo" href="'+esc(x.url)+'" data-sg target="_blank" rel="noopener">Open \u2197</a></div>';
+  }).join("")+
+  (q.length>1?'<p class="hint" style="margin-top:10px">Each opens in a new tab. Tap them one at a time \u2014 Safari blocks bulk pop-ups.</p>':'');
+}
+/* ---------- models & presets ---------- */
+function renderModels(){
+  var ms=getModels(), sel=selModels();
+  $("modelChips").innerHTML=ms.map(function(m,i){
+    return '<button class="chip" data-model="'+esc(m)+'" aria-pressed="'+(sel.indexOf(m)>=0)+'">'+esc(m)+'</button>'+
+           '<button class="chip x" data-delmodel="'+i+'" aria-label="Remove '+esc(m)+'">\u00d7</button>';
+  }).join("");
+}
+function renderTypes(){
+  var c=calib(), sel=selTypes();
+  $("typeChips").innerHTML=c.veh.map(function(t){
+    return '<button class="chip" data-type="'+esc(t.name)+'" aria-pressed="'+(sel.indexOf(t.name)>=0)+'">'+esc(t.name)+(t.verified?' ✓':'')+'</button>';
+  }).join("");
+  renderCalibSelect();
+}
+/* ---------- calibrate panel ---------- */
+var CAL_FIELDS=[["model","Model search box"],["price","Max price"],["dep","Max depreciation /yr"],
+  ["km","Max mileage"],["coeMin","Min COE left"],["coeMax","Max COE left"],["owners","Max no. of owners"],
+  ["regFrom","First registered from (min reg year) — used for PARF-only hunts"],
+  ["regTo","First registered before (max reg year) — used for renewed-COE-only hunts"]];
+function renderCalibSelect(){
+  var c=calib(), keep=$("calKind")?$("calKind").value:null;
+  var opts=CAL_FIELDS.map(function(f){return '<option value="'+f[0]+'">'+f[1]+(c.verified[f[0]]?' ✓ verified':' (guessed)')+'</option>'})
+    .concat(c.veh.map(function(v){return '<option value="veh:'+esc(v.name)+'">Vehicle type: '+esc(v.name)+(v.verified?' ✓ verified':' (guessed)')+'</option>'}));
+  $("calKind").innerHTML=opts.join("");
+  if(keep) $("calKind").value=keep;
+  renderCalibStatus();
+}
+function calKindNeedsValue(k){ return k==="price"||k==="dep"||k==="km" }
+function renderCalibStatus(){
+  var c=calib(), k=$("calKind").value;
+  $("calValWrap").classList.toggle("hide", !calKindNeedsValue(k));
+  var verified = k.indexOf("veh:")===0 ? c.veh.find(function(v){return v.name===k.slice(4)}).verified : c.verified[k];
+  $("calBaseNow").textContent = "Base URL: "+c.base+(c.verifiedBase?" (verified)":" (default, unverified)");
+  $("calStatus").innerHTML = verified
+    ? '<span class="tag good">VERIFIED against sgcarmart.com</span>'
+    : '<span class="tag warn">GUESSED — not yet checked against the real site</span>';
+}
+function renderAge(){
+  var a=selAge();
+  document.querySelectorAll("#ageChips .chip").forEach(function(b){
+    b.setAttribute("aria-pressed", a.indexOf(b.dataset.age)>=0);
+  });
+}
+function renderPresets(){
+  var ps=load(K.presets,[]);
+  $("presetChips").innerHTML=ps.length?ps.map(function(p,i){
+    return '<a class="chip" href="'+esc(p.url)+'" data-sg target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">'+esc(p.name)+' ↗</a>'+
+           '<button class="chip x" data-delpreset="'+i+'" aria-label="Remove preset">×</button>';
+  }).join(""):'<span class="hint">No presets yet.</span>';
+}
+
+/* ---------- hunts: named, re-runnable snapshots of the whole Hunt form ---------- */
+function huntSummary(h){
+  var bits=[];
+  if(h.models.length) bits.push(h.models.length+" model"+(h.models.length===1?"":"s"));
+  if(h.types.length) bits.push(h.types.join(", "));
+  if(h.age&&h.age.length===1) bits.push(h.age[0]==="parf"?"PARF only":"renewed only");
+  if(h.filters.price) bits.push("under "+money(h.filters.price));
+  if(h.filters.dep) bits.push("dep under "+money(h.filters.dep));
+  if(h.filters.coeMax!=null) bits.push("max "+h.filters.coeMax+" yrs COE");
+  if(h.filters.owners!=null) bits.push("max "+h.filters.owners+" owner"+(h.filters.owners===1?"":"s"));
+  return bits.length?bits.join(" · "):"All cars, your filters";
+}
+function renderHunts(){
+  var hs=load(K.hunts,[]);
+  $("huntList").innerHTML = hs.length ? hs.map(function(h,i){
+    return '<div class="qrow"><div class="qlbl">'+
+      (h.tag?'<span class="tag" style="margin-right:6px">'+esc(h.tag)+'</span>':'')+
+      '<b>'+esc(h.name)+'</b><span class="qurl">'+esc(huntSummary(h))+'</span></div>'+
+      '<button class="qgo" data-loadhunt="'+i+'">Load ↻</button>'+
+      '<button class="chip x" data-delhunt="'+i+'" aria-label="Delete hunt">×</button></div>';
+  }).join("") : '<span class="hint">No saved hunts yet. Set your models, types and numbers above, then tap Save as hunt.</span>';
+}
+function saveHunt(){
+  var name=prompt("Name this hunt (e.g. 'Family SUV under 60k')"); if(!name) return;
+  var tag=prompt("Optional tag (e.g. Budget, Weekend watch) — leave blank to skip")||"";
+  var hs=load(K.hunts,[]);
+  hs.unshift({id:Date.now(),name:name.trim(),tag:tag.trim(),models:selModels(),types:selTypes(),age:selAge(),
+    filters:readFilters(),created:new Date().toISOString()});
+  save(K.hunts,hs); renderHunts(); toast("Hunt saved");
+}
+function loadHunt(i){
+  var hs=load(K.hunts,[]), h=hs[i]; if(!h) return;
+  save(K.selM,h.models); save(K.selT,h.types); save(K.selA,h.age.length?h.age:["parf"]);
+  $("fSort").value=h.filters.sort||"DEP_ASC";
+  $("fPrice").value=h.filters.price||""; $("fDep").value=h.filters.dep||"";
+  $("fCoeMin").value=h.filters.coeMin!=null?h.filters.coeMin:""; $("fCoeMax").value=h.filters.coeMax!=null?h.filters.coeMax:"";
+  $("fKm").value=h.filters.km||""; $("fOwners").value=h.filters.owners!=null?h.filters.owners:"";
+  renderModels(); renderTypes(); renderAge(); renderQueue();
+  $("queuePanel").scrollIntoView({behavior:"smooth",block:"start"});
+  toast("Loaded “"+h.name+"”");
+}
+
+/* ---------- theme & tabs ---------- */
+/* [id, label, groundColour, inkColour, accentColour] - the last three only
+   drive the picker swatch, so each swatch previews its own palette. */
+var THEMES=[
+  ["logcard","Log Card","#DDE1DA","#151A1C","#0F6B52"],
+  ["paper","Paper","#F3EFE7","#221E18","#3F6B2F"],
+  ["orchard","Orchard","#F0F4EC","#16241A","#186540"],
+  ["night","Night Drive","#101512","#E8EDE6","#4FBF97"],
+  ["oled","OLED Black","#000000","#F2F2F2","#3DDC97"],
+  ["marina","Marina","#0B1B26","#E4F2F8","#48CFC0"],
+  ["kopi","Kopi","#241A14","#F6EADF","#C9A227"],
+  ["dusk","Dusk","#1A1424","#F0EAF8","#C08BE8"],
+  ["webslinger","Web-Slinger","#0B1E3D","#F3F6FC","#FF6161"]
+];
+function setTheme(t){
+  if(!THEMES.some(function(x){return x[0]===t})) t="logcard";
+  document.documentElement.dataset.t=t; save(K.theme,t);
+  var g=getComputedStyle(document.documentElement).getPropertyValue("--ground").trim();
+  var meta=document.querySelector('meta[name=theme-color]');
+  if(meta&&g) meta.setAttribute("content",g);
+  markSwatch(t);
+}
+function markSwatch(t){
+  document.querySelectorAll("#swatches [data-theme]").forEach(function(b){
+    b.setAttribute("aria-pressed", b.dataset.theme===t);
+  });
+}
+function renderSwatches(){
+  var cur=document.documentElement.dataset.t;
+  $("swatches").innerHTML=THEMES.map(function(t){
+    return '<button class="sw" data-theme="'+t[0]+'" aria-pressed="'+(t[0]===cur)+'">'+
+      '<span class="dots">'+
+        '<i style="background:'+t[2]+'"></i><i style="background:'+t[3]+'"></i><i style="background:'+t[4]+'"></i>'+
+      '</span>'+esc(t[1])+'<span class="tick">\u2713</span></button>';
+  }).join("");
+}
+/* Tabs are all flex:1, so percentage maths is exact and needs no measured
+   layout - the indicator lands correctly even before webfonts settle. */
+function moveNavBar(){
+  var tabs=[].slice.call(document.querySelectorAll("nav button[data-p]")), bar=$("navBar");
+  if(!bar||!tabs.length) return;
+  var i=tabs.findIndex(function(b){return b.getAttribute("aria-selected")==="true"});
+  if(i<0) i=0;
+  bar.style.width=(100/tabs.length)+"%";
+  bar.style.transform="translateX("+(i*100)+"%)";
+}
+function go(p){
+  ["hunt","add","list","cmp","tools"].forEach(function(x){$("p-"+x).classList.toggle("hide",x!==p)});
+  document.querySelectorAll("nav button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.p===p)});
+  window.scrollTo({top:0,behavior:"smooth"});
+  moveNavBar();
+  if(p==="list") renderList(); if(p==="cmp"){renderWeights();renderCmp()} if(p==="tools") renderCalc();
+}
+
+/* ---------- events ---------- */
+function openSheet(v){ $("themeSheet").classList.toggle("on",v) }
+$("themeBtn").onclick=function(){ markSwatch(document.documentElement.dataset.t); openSheet(true) };
+$("sheetClose").onclick=function(){ openSheet(false) };
+$("themeSheet").onclick=function(e){
+  var b=e.target.closest("[data-theme]");
+  if(b){ setTheme(b.dataset.theme); toast(THEMES.find(function(t){return t[0]===b.dataset.theme})[1]); return }
+  if(e.target===$("themeSheet")) openSheet(false);
+};
+document.addEventListener("keydown",function(e){ if(e.key==="Escape") openSheet(false) });
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){go(b.dataset.p)}});
+
+/* SGCarmart's own search/listing pages sometimes fail to populate on a cold
+   deep-link load — a client-side hydration race on their end — but always
+   work on a manual refresh of the exact same URL. Rather than make you do
+   that by hand every time, open the tab and force one silent reload shortly
+   after, once their page has had a moment to settle. Every outbound link to
+   sgcarmart.com in this app is marked data-sg so it goes through this. */
+function openSgcarmart(url){
+  var w=window.open(url,"_blank");
+  if(!w) return; // popup blocked — browser already showed its own UI for that
+  w.opener=null;
+  // two staggered reloads: fast connections settle by 1.2s, slow ones need the 2.6s backstop
+  setTimeout(function(){ try{ w.location.href=url }catch(e){} },1200);
+  setTimeout(function(){ try{ w.location.href=url }catch(e){} },2600);
+}
+document.addEventListener("click",function(e){
+  var a=e.target.closest("a[data-sg]"); if(!a) return;
+  if(e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return; // let modified/middle clicks behave natively
+  e.preventDefault();
+  openSgcarmart(a.getAttribute("href"));
+});
+
+function toggleIn(key,val){
+  var a=load(key,key===K.selA?["parf"]:[]), i=a.indexOf(val);
+  if(i>=0) a.splice(i,1); else a.push(val);
+  save(key,a); return a;
+}
+$("modelChips").onclick=function(e){
+  var m=e.target.closest("[data-model]"), d=e.target.closest("[data-delmodel]");
+  if(m){ var a=toggleIn(K.selM,m.dataset.model);
+         m.setAttribute("aria-pressed", a.indexOf(m.dataset.model)>=0);
+         renderQueue(); return }
+  if(d){
+    var ms=getModels(), gone=ms.splice(+d.dataset.delmodel,1)[0];
+    if(gone==null) return;
+    save(K.models,ms);
+    save(K.selM,selModels().filter(function(x){return x!==gone}));
+    renderModels(); renderQueue();
+  }
+};
+$("typeChips").onclick=function(e){
+  var t=e.target.closest("[data-type]"); if(!t) return;
+  var a=toggleIn(K.selT,t.dataset.type);
+  t.setAttribute("aria-pressed", a.indexOf(t.dataset.type)>=0);
+  renderQueue();
+};
+$("typeAll").onclick=function(){ save(K.selT,calib().veh.map(function(t){return t.name})); renderTypes(); renderQueue() };
+$("typeNone").onclick=function(){ save(K.selT,[]); renderTypes(); renderQueue() };
+$("searchBtn").onclick=function(){
+  renderQueue();
+  $("queuePanel").scrollIntoView({behavior:"smooth",block:"start"});
+  var n=buildQueue().length;
+  toast(n+" search"+(n===1?"":"es")+" ready");
+};
+document.querySelectorAll("#unitsBox [data-u]").forEach(function(b){
+  b.onclick=function(){
+    var key = b.dataset.u==="money"?"price":"km", c=calib();
+    c.scale[key] = c.scale[key]===1000 ? 1 : 1000;
+    if(b.dataset.u==="money") c.scale.dep = c.scale.price;
+    save(K.calib,c); renderQueue();
+  };
+});
+$("calKind").onchange=renderCalibStatus;
+$("calPasteBase").onclick=function(){pasteInto("calBaseUrl")};
+$("calPasteFilled").onclick=function(){pasteInto("calFilledUrl")};
+$("calDetect").onclick=function(){
+  var k=$("calKind").value, base=$("calBaseUrl").value.trim(), filled=$("calFilledUrl").value.trim();
+  if(!base||!filled) return toast("Paste both URLs first");
+  var r=calibApply(k, $("calVal").value, base, filled);
+  if(!r.ok) return toast(r.err);
+  $("calFilledUrl").value="";
+  renderTypes(); renderCalibSelect(); renderQueue(); renderUnits();
+  toast("Calibrated: "+r.param+"="+r.value);
+};
+$("addModel").onclick=function(){
+  var v=$("newModel").value.trim(); if(!v) return;
+  var ms=getModels();
+  if(ms.some(function(x){return x.toLowerCase()===v.toLowerCase()})) return toast(v+" is already in the list");
+  ms.push(v); save(K.models,ms); $("newModel").value=""; renderModels(); toast("Added "+v);
+};
+$("ageChips").onclick=function(e){
+  var b=e.target.closest("[data-age]"); if(!b) return;
+  toggleIn(K.selA,b.dataset.age);
+  if(!load(K.selA,[]).length) save(K.selA,["parf","renewed"]);   // never leave it empty
+  renderAge(); renderQueue();
+};
+async function pasteInto(id){
+  try{var t=await navigator.clipboard.readText(); if(t){$(id).value=t.trim();toast("Pasted")} else toast("Clipboard empty")}
+  catch(e){toast("Safari blocked paste — long-press the field instead")}
+}
+$("psPaste").onclick=function(){pasteInto("psUrl")};
+$("blobPaste").onclick=function(){pasteInto("blob")};
+$("psSave").onclick=function(){
+  var n=$("psName").value.trim(), u=$("psUrl").value.trim();
+  if(!n) return toast("Give the preset a name");
+  if(!/^https:\/\/([a-z0-9-]+\.)*sgcarmart\.com\//i.test(u)) return toast("That isn't an sgcarmart.com URL");
+  var ps=load(K.presets,[]); ps.push({name:n,url:u}); save(K.presets,ps);
+  $("psName").value="";$("psUrl").value=""; renderPresets(); toast("Preset saved");
+};
+$("presetChips").onclick=function(e){
+  var d=e.target.closest("[data-delpreset]"); if(!d) return;
+  var ps=load(K.presets,[]); ps.splice(+d.dataset.delpreset,1); save(K.presets,ps); renderPresets();
+};
+$("saveHunt").onclick=saveHunt;
+$("huntList").onclick=function(e){
+  var l=e.target.closest("[data-loadhunt]"), d=e.target.closest("[data-delhunt]");
+  if(l){ loadHunt(+l.dataset.loadhunt); return }
+  if(d){
+    if(!confirm("Delete this hunt?")) return;
+    var hs=load(K.hunts,[]); hs.splice(+d.dataset.delhunt,1); save(K.hunts,hs); renderHunts();
+  }
+};
+$("blobRead").onclick=readBlob;
+$("aClear").onclick=function(){
+  ["aName","aUrl","aPrice","aDep","aReg","aKm","aArf","aCoe","aOwners","aTax","aDereg","aNotes","blob"].forEach(function(i){$(i).value=""});
+  $("aCoeType").value="original"; toast("Cleared");
+};
+$("aSave").onclick=function(){
+  var name=$("aName").value.trim(); if(!name) return toast("Give the car a name");
+  var url=$("aUrl").value.trim();
+  if(url&&!/^https:\/\/([a-z0-9-]+\.)*sgcarmart\.com\//i.test(url)) return toast("URL must be on sgcarmart.com");
+  var cars=load(K.cars,[]);
+  cars.unshift({id:Date.now(),name:name,url:url,price:num($("aPrice").value),dep:num($("aDep").value),
+    reg:$("aReg").value||null,km:num($("aKm").value),arf:num($("aArf").value),coe:num($("aCoe").value),
+    owners:num($("aOwners").value),tax:num($("aTax").value),deregListed:num($("aDereg").value),coeType:$("aCoeType").value,
+    notes:$("aNotes").value.trim(),added:new Date().toISOString()});
+  save(K.cars,cars); $("aClear").click(); renderList(); toast("Saved to shortlist"); go("list");
+};
+$("listOut").onclick=function(e){
+  var b=e.target.closest("[data-del]"); if(!b) return;
+  if(!confirm("Remove this car from the shortlist?")) return;
+  save(K.cars,load(K.cars,[]).filter(function(c){return String(c.id)!==b.dataset.del}));
+  renderList(); toast("Removed");
+};
+$("sSort").onchange=renderList;
+$("sFilterChips").onclick=function(e){
+  var b=e.target.closest("[data-sf]"); if(!b) return;
+  var a=load(K.sFil,["original","renewed"]), i=a.indexOf(b.dataset.sf);
+  if(i>=0) a.splice(i,1); else a.push(b.dataset.sf);
+  if(!a.length) a=["original","renewed"];
+  save(K.sFil,a); renderSFilter(); renderList();
+  b.blur();
+};
+function renderSFilter(){
+  var a=load(K.sFil,["original","renewed"]);
+  document.querySelectorAll("#sFilterChips .chip").forEach(function(b){
+    b.setAttribute("aria-pressed", a.indexOf(b.dataset.sf)>=0);
+  });
+}
+$("weights").oninput=function(e){
+  var r=e.target; if(!r.dataset.wi) return;
+  var i=+r.dataset.wi, ws=weights(); ws[i].w=+r.value;
+  save(K.w,ws.map(function(w){return{k:w.k,w:w.w}}));
+  $("wv"+i).textContent=r.value; renderCmp();
+};
+["cKm","cFuel","cIns","cPark","cMaint","cKmL"].forEach(function(i){$(i).onchange=saveRun});
+["kReg","kDereg","kArf","kCoe"].forEach(function(i){$(i).oninput=renderCalc});
+["fPrice","fDep","fKm","fCoeMin","fCoeMax","fOwners","fSort"].forEach(function(i){$(i).onchange=renderQueue});
+
+$("bmCopy").onclick=function(){
+  $("bmCode").select();
+  navigator.clipboard&&navigator.clipboard.writeText($("bmCode").value).then(function(){toast("Copied — paste as the bookmark's URL")}).catch(function(){toast("Select the text above and copy manually")});
+};
+$("exp").onclick=function(){
+  var data={v:4,exported:new Date().toISOString(),cars:load(K.cars,[]),models:load(K.models,[]),presets:load(K.presets,[]),weights:load(K.w,null),hunts:load(K.hunts,[]),calib:load(K.calib,null)};
+  var json=JSON.stringify(data,null,2), href;
+  try{
+    href=URL.createObjectURL(new Blob([json],{type:"application/json"}));
+  }catch(err){
+    href="data:application/json;charset=utf-8,"+encodeURIComponent(json);
+  }
+  var a=document.createElement("a");
+  a.href=href; a.download="car-scout-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  if(href.slice(0,5)==="blob:") setTimeout(function(){try{URL.revokeObjectURL(href)}catch(e){}},1000);
+  toast("Backup downloaded");
+};
+$("impBtn").onclick=function(){$("impFile").click()};
+$("impFile").onchange=function(e){
+  var f=e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d.cars) throw 0;
+      var cur=load(K.cars,[]), ids={};
+      cur.forEach(function(c){ids[c.id]=1});
+      var add=d.cars.filter(function(c){return !ids[c.id]});
+      save(K.cars,cur.concat(add));
+      if(d.models) save(K.models,d.models);
+      if(d.presets) save(K.presets,d.presets);
+      if(d.weights) save(K.w,d.weights);
+      if(d.hunts) save(K.hunts,d.hunts);
+      if(d.calib) save(K.calib,d.calib);
+      renderModels();renderPresets();renderHunts();renderList();renderWeights();renderTypes();renderQueue();
+      toast("Restored "+add.length+" car"+(add.length===1?"":"s"));
+    }catch(err){toast("That file isn't a Car Scout backup")}
+  };
+  r.readAsText(f); e.target.value="";
+};
+$("wipe").onclick=function(){
+  if(!confirm("Delete all cars, models and presets? Download a backup first if you want to keep them.")) return;
+  Object.values(K).forEach(function(k){localStorage.removeItem(k)}); location.reload();
+};
+
+/* ---------- boot ---------- */
+renderSwatches();
+setTheme(load(K.theme,"logcard"));
+moveNavBar();
+window.addEventListener("resize",moveNavBar);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(moveNavBar);
+getModels(); renderModels(); renderPresets(); renderHunts(); renderSFilter(); renderList(); renderWeights();
+var f=load(K.filters,null);
+if(f){ $("fSort").value=f.sort||"DEP_ASC";
+  if(f.price)$("fPrice").value=f.price; if(f.dep)$("fDep").value=f.dep;
+  if(f.km)$("fKm").value=f.km;
+  if(f.coeMin!=null)$("fCoeMin").value=f.coeMin; if(f.coeMax!=null)$("fCoeMax").value=f.coeMax;
+  if(f.owners!=null)$("fOwners").value=f.owners;
+}
+renderTypes(); renderAge(); renderQueue();
+var r=load(K.run,null);
+if(r){$("cKm").value=r.km;$("cFuel").value=r.fuel;$("cIns").value=r.ins;$("cPark").value=r.park;$("cMaint").value=r.maint;$("cKmL").value=r.kml}
+$("kDereg").value=new Date().toISOString().slice(0,10);
+$("stamp").textContent="SG · "+new Date().toLocaleDateString("en-SG",{day:"2-digit",month:"short",year:"numeric"});
+if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(function(){});
+})();
+</script>
+<script src="./fx.js" defer></script>
+</body>
+</html>

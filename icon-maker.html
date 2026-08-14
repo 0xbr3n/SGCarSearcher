@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Car Scout — icon maker</title>
+<style>
+  body{font-family:-apple-system,sans-serif;background:#151A1C;color:#EFF1EB;margin:0;padding:20px;text-align:center}
+  h1{font-size:18px;margin:4px 0 2px}
+  p{color:#9AA69C;font-size:13px;max-width:480px;margin:6px auto 18px}
+  canvas{background:#101512;border-radius:22px;image-rendering:pixelated}
+  .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  button{background:#4FBF97;color:#0A1410;border:0;font-weight:700;padding:12px 18px;border-radius:8px;font-size:14px;cursor:pointer}
+  button.alt{background:#242C26;color:#E8EDE6;border:1px solid #4FBF97}
+  .swatches{display:flex;gap:8px;justify-content:center;margin:14px 0}
+  .swatches button{width:34px;height:34px;padding:0;border-radius:50%;border:2px solid #3a4440}
+  .note{font-size:11px;color:#6b7871;margin-top:20px}
+</style>
+</head>
+<body>
+<h1>SG Car Scout — icon maker</h1>
+<p>Generates the three home-screen icon sizes as a cartoony radar/target badge (same HUD style as the app). Pick a colour, download all three, drop them over the existing <code>icon-180.png</code>, <code>icon-192.png</code>, <code>icon-512.png</code> files, then redeploy.</p>
+
+<canvas id="cv" width="512" height="512"></canvas>
+
+<div class="swatches" id="swatches"></div>
+
+<div class="row">
+  <button id="dl512">Download 512×512</button>
+  <button id="dl192">Download 192×192</button>
+  <button id="dl180">Download 180×180</button>
+  <button class="alt" id="dlAll">Download all three</button>
+</div>
+<p class="note">Everything runs locally in this page — nothing is uploaded anywhere.</p>
+
+<script>
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+var COLORS = ['#4FBF97','#48CFC0','#E07A5F','#E8B44C','#C08BE8','#3DDC97'];
+var accent = COLORS[0];
+
+function draw(){
+  var s = 512;
+  ctx.clearRect(0,0,s,s);
+  // background
+  var bg = ctx.createLinearGradient(0,0,s,s);
+  bg.addColorStop(0,'#101512'); bg.addColorStop(1,'#0A0E0B');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,s,s);
+
+  // rounded corner mask (iOS applies its own, but keep some breathing room)
+  ctx.save();
+  var r = 96;
+  ctx.beginPath();
+  ctx.moveTo(r,0); ctx.arcTo(s,0,s,s,r); ctx.arcTo(s,s,0,s,r); ctx.arcTo(0,s,0,0,r); ctx.arcTo(0,0,s,0,r);
+  ctx.closePath(); ctx.clip();
+  ctx.fillStyle = bg; ctx.fillRect(0,0,s,s);
+
+  var cx=s/2, cy=s/2;
+
+  // radar rings
+  ctx.strokeStyle = accent; ctx.globalAlpha=.35;
+  [210,150,90].forEach(function(rad,i){
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.stroke();
+  });
+  ctx.globalAlpha=1;
+
+  // crosshair ticks
+  ctx.strokeStyle = accent; ctx.lineWidth = 8; ctx.lineCap='round';
+  [0,90,180,270].forEach(function(deg){
+    var a = deg*Math.PI/180;
+    var x1 = cx+Math.cos(a)*230, y1=cy+Math.sin(a)*230;
+    var x2 = cx+Math.cos(a)*250, y2=cy+Math.sin(a)*250;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+
+  // outer chunky ring (comic border)
+  ctx.strokeStyle = '#E8EDE6'; ctx.lineWidth = 14;
+  ctx.beginPath(); ctx.arc(cx,cy,150,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#182420'; ctx.beginPath(); ctx.arc(cx,cy,150,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#E8EDE6'; ctx.lineWidth = 14;
+  ctx.beginPath(); ctx.arc(cx,cy,150,0,Math.PI*2); ctx.stroke();
+
+  // car silhouette (simple cartoon car, comic outline)
+  ctx.save();
+  ctx.translate(cx,cy+8);
+  ctx.fillStyle = accent;
+  ctx.strokeStyle = '#0A0E0B'; ctx.lineWidth = 8; ctx.lineJoin='round';
+  ctx.beginPath();
+  ctx.moveTo(-108,20);
+  ctx.lineTo(-88,-18);
+  ctx.quadraticCurveTo(-70,-42,-30,-42);
+  ctx.lineTo(28,-42);
+  ctx.quadraticCurveTo(64,-42,80,-16);
+  ctx.lineTo(108,20);
+  ctx.quadraticCurveTo(108,36,90,36);
+  ctx.lineTo(-90,36);
+  ctx.quadraticCurveTo(-108,36,-108,20);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // windows
+  ctx.fillStyle = '#0A0E0B';
+  ctx.beginPath();
+  ctx.moveTo(-62,-36); ctx.lineTo(-46,-8); ctx.lineTo(60,-8); ctx.lineTo(46,-36); ctx.closePath();
+  ctx.fill();
+  // wheels
+  ctx.fillStyle = '#0A0E0B'; ctx.strokeStyle = accent; ctx.lineWidth=6;
+  [-62,62].forEach(function(wx){
+    ctx.beginPath(); ctx.arc(wx,36,26,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  });
+  ctx.restore();
+
+  // magnifier / scan cursor top-right
+  ctx.save();
+  ctx.translate(cx+118,cy-118);
+  ctx.strokeStyle = '#E07A5F'; ctx.lineWidth = 12; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(0,0,34,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(24,24); ctx.lineTo(46,46); ctx.stroke();
+  ctx.restore();
+
+  ctx.restore(); // clip
+}
+
+function renderSwatches(){
+  var wrap = document.getElementById('swatches');
+  wrap.innerHTML='';
+  COLORS.forEach(function(c){
+    var b = document.createElement('button');
+    b.style.background = c;
+    b.onclick = function(){ accent = c; draw(); };
+    wrap.appendChild(b);
+  });
+}
+
+function download(size, name){
+  var tmp = document.createElement('canvas'); tmp.width=size; tmp.height=size;
+  tmp.getContext('2d').drawImage(cv,0,0,size,size);
+  var a = document.createElement('a');
+  a.href = tmp.toDataURL('image/png');
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+document.getElementById('dl512').onclick=function(){download(512,'icon-512.png')};
+document.getElementById('dl192').onclick=function(){download(192,'icon-192.png')};
+document.getElementById('dl180').onclick=function(){download(180,'icon-180.png')};
+document.getElementById('dlAll').onclick=function(){download(512,'icon-512.png');download(192,'icon-192.png');download(180,'icon-180.png')};
+
+renderSwatches();
+draw();
+</script>
+</body>
+</html>
