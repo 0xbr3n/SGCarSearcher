@@ -73,6 +73,7 @@ HELP_TEXT = (
     "same as sgcarmart.com wants.\n\n"
     "<b>/hunt</b> — pick vehicle types + models + PARF/renewed, send your numbers, get links\n"
     "<b>/hunts</b> — list, run, or delete saved hunts (shared with everyone in this chat)\n"
+    "<b>/auto</b> — run every saved hunt at once (still no auto-scraping — you tap through, I just save the clicking)\n"
     "<b>/models</b> — show the saved model list · <b>/addmodel</b> <i>name</i> · <b>/delmodel</b> <i>name</i>\n"
     "<b>/calibrate</b> — teach the bot SGCarmart's real filter params (see below)\n"
     "<b>/add</b> — paste a listing's details block, get true depreciation + red flags\n"
@@ -502,6 +503,24 @@ async def delete_saved_hunt(cq, chat, chat_id, i):
     return await cq.answer(f"Deleted “{h['name']}”")
 
 
+async def cmd_auto(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Runs every saved hunt in one go and posts all the links. This is NOT
+    automated checking — the bot still never fetches SGCarmart itself (see
+    the module docstring); it just saves you from tapping ▶ on each saved
+    hunt individually in /hunts. A human still has to open each link to see
+    what's new, then /add anything worth logging."""
+    chat_id = update.effective_chat.id
+    chat = get_chat(chat_id)
+    if not chat["hunts"]:
+        return await update.message.reply_text("No saved hunts to run yet — build one with /hunt, then tap “Save as hunt”, then /auto will run all of them at once.")
+    calib = normalize_calib(chat["calib"])
+    bot_api = update.get_bot()
+    await update.message.reply_text(f"🔔 Running {len(chat['hunts'])} saved hunt{'s' if len(chat['hunts']) != 1 else ''} — tap through and check for anything new, then /add what's worth logging.")
+    for h in chat["hunts"]:
+        queue = build_queue(calib, h["filters"], h["age"], h["models"], h["types"])
+        await send_queue_as_text(bot_api, chat_id, f"🎯 <b>{esc(h['name'])}</b> — {len(queue)} search{'es' if len(queue) != 1 else ''}", queue)
+
+
 # ------------------------------ /calibrate ------------------------------
 
 async def cmd_calibrate(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -720,6 +739,7 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 COMMANDS = [
     BotCommand("hunt", "Build a SGCarmart search — types, models, numbers"),
     BotCommand("hunts", "List, run, or delete saved hunts"),
+    BotCommand("auto", "Run every saved hunt at once"),
     BotCommand("calibrate", "Teach the bot SGCarmart's real filter params"),
     BotCommand("add", "Paste a listing, get true depreciation + red flags"),
     BotCommand("shortlist", "Everyone's saved cars, ranked"),
@@ -758,6 +778,7 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("delmodel", cmd_delmodel))
     app.add_handler(CommandHandler("hunt", cmd_hunt))
     app.add_handler(CommandHandler("hunts", cmd_hunts))
+    app.add_handler(CommandHandler("auto", cmd_auto))
     app.add_handler(CommandHandler("calibrate", cmd_calibrate))
     app.add_handler(CommandHandler("add", cmd_add))
     app.add_handler(CommandHandler("shortlist", cmd_shortlist))
