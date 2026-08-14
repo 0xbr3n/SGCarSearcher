@@ -210,11 +210,9 @@ async function handleHuntNumbers(chatId, chat, text) {
   await setChat(chatId, chat);
 
   if (!queue.length) return TG.sendMessage(chatId, "No searches to build — something went wrong, try /hunt again.");
-  const rows = queue.slice(0, 20).map(q => [TG.urlBtn("🔗 " + (q.label.length > 40 ? q.label.slice(0, 39) + "…" : q.label), q.url)]);
-  rows.push([TG.btn("💾 Save as hunt", "savehunt")]);
-  const extra = queue.length > 20 ? `\n\n(showing first 20 of ${queue.length} — narrow your models/types for fewer)` : "";
   const unverified = !calib.verifiedBase ? "\n\n⚠️ Not calibrated yet — these links use best-effort guesses. Run /calibrate to make sure they actually work." : "";
-  return TG.sendMessage(chatId, `✅ <b>${queue.length} search${queue.length === 1 ? "" : "es"} ready.</b> Tap to open.${extra}${unverified}`, TG.kb(rows));
+  await sendQueueAsText(chatId, `✅ <b>${queue.length} search${queue.length === 1 ? "" : "es"} ready</b>${unverified}`, queue);
+  return TG.sendMessage(chatId, "Want to keep this hunt?", TG.kb([[TG.btn("💾 Save as hunt", "savehunt")]]));
 }
 
 async function promptHuntName(chat, chatId, cqId) {
@@ -243,9 +241,34 @@ async function runSavedHunt(chat, chatId, i, cqId) {
   if (!h) return TG.answerCallbackQuery(cqId, "Not found — it may have been deleted.");
   const calib = normalizeCalib(chat.calib);
   const queue = buildQueue(calib, h.filters, h.age, h.models, h.types);
-  const rows = queue.slice(0, 20).map(q => [TG.urlBtn("🔗 " + (q.label.length > 40 ? q.label.slice(0, 39) + "…" : q.label), q.url)]);
-  await TG.sendMessage(chatId, `🎯 <b>${esc(h.name)}</b> — ${queue.length} search${queue.length === 1 ? "" : "es"}`, TG.kb(rows));
+  await sendQueueAsText(chatId, `🎯 <b>${esc(h.name)}</b> — ${queue.length} search${queue.length === 1 ? "" : "es"}`, queue);
   return TG.answerCallbackQuery(cqId, "Links sent");
+}
+
+// Telegram caps messages at 4096 chars, and full SGCarmart URLs (with every
+// filter param) can run 150-350 chars each — a naive list of 20 could blow
+// past that. Pack entries greedily into as few messages as fit, splitting
+// only when needed, and cap total entries so one hunt can't spam forever.
+const MAX_QUEUE_ENTRIES = 60;
+const MSG_BUDGET = 3500; // headroom under Telegram's 4096 hard limit
+async function sendQueueAsText(chatId, headerHtml, queue) {
+  const shown = queue.slice(0, MAX_QUEUE_ENTRIES);
+  const blocks = shown.map(q => `<b>${esc(q.label)}</b>\n${esc(q.url)}`);
+  const cappedNote = queue.length > MAX_QUEUE_ENTRIES ? `\n\n(showing first ${MAX_QUEUE_ENTRIES} of ${queue.length} — narrow your models/types for fewer)` : "";
+
+  const chunks = [];
+  let cur = [];
+  let curLen = headerHtml.length + cappedNote.length;
+  for (const b of blocks) {
+    if (curLen + b.length + 2 > MSG_BUDGET && cur.length) { chunks.push(cur); cur = []; curLen = 0; }
+    cur.push(b); curLen += b.length + 2;
+  }
+  if (cur.length) chunks.push(cur);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const head = i === 0 ? `${headerHtml}${cappedNote}\n\n` : `(part ${i + 1}/${chunks.length})\n\n`;
+    await TG.sendMessage(chatId, head + chunks[i].join("\n\n"), { disable_web_page_preview: true });
+  }
 }
 async function deleteSavedHunt(chat, chatId, messageId, i, cqId) {
   const h = chat.hunts[i];
