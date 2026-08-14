@@ -24,6 +24,7 @@ from carmath import derive, flags, money, num, score_all
 from calib import CAL_FIELDS, build_queue, calib_apply, normalize_calib
 from parse import parse_listing
 from store import get_chat, save_chat
+from models_catalog import BRANDS, CATALOG
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("carscout-bot")
@@ -129,20 +130,54 @@ def types_keyboard(calib: dict, selected: list[int]) -> InlineKeyboardMarkup:
     return kb(rows)
 
 
-def models_keyboard(models: list[str], selected: list[int]) -> InlineKeyboardMarkup:
-    rows = [[(("☑️ " if i in selected else "▫️ ") + m, f"hw:m:{i}")] for i, m in enumerate(models)]
-    rows.append([("▶ Next", "hw:mdone")])
+def age_keyboard() -> InlineKeyboardMarkup:
+    return kb([[("PARF only", "hw:age:parf"), ("Renewed only", "hw:age:renewed"), ("Both", "hw:age:both")]])
+
+
+# ------------------------------ model browser ------------------------------
+# Three views, all button-driven: a root menu (saved list / browse by brand /
+# type a name), a per-brand model list, and the saved-models list — plus a
+# free-text escape hatch for anything not in the catalog (rare trims, AMG/M
+# variants not listed, etc.). Selections are tracked by full name string
+# ("Brand Model"), not by index, so switching between views never desyncs.
+
+def _models_done_label(selected: list[str]) -> str:
+    return f"✅ Done ({len(selected)} picked)" if selected else "✅ Done (search all models)"
+
+
+def models_root_keyboard(selected: list[str]) -> InlineKeyboardMarkup:
+    rows = [[("⭐ My saved models", "hw:msaved")]]
+    for i in range(0, len(BRANDS), 2):
+        row = [(BRANDS[i], f"hw:mbrand:{i}")]
+        if i + 1 < len(BRANDS):
+            row.append((BRANDS[i + 1], f"hw:mbrand:{i + 1}"))
+        rows.append(row)
+    rows.append([("✏️ Type a model", "hw:mcustom")])
+    rows.append([(_models_done_label(selected), "hw:mdone")])
     return kb(rows)
 
 
-def age_keyboard() -> InlineKeyboardMarkup:
-    return kb([[("PARF only", "hw:age:parf"), ("Renewed only", "hw:age:renewed"), ("Both", "hw:age:both")]])
+def models_brand_keyboard(brand: str, selected: list[str]) -> InlineKeyboardMarkup:
+    rows = [[(("☑️ " if f"{brand} {m}" in selected else "▫️ ") + m, f"hw:mt:{brand} {m}")] for m in CATALOG[brand]]
+    rows.append([("◀ Brands", "hw:mback")])
+    rows.append([(_models_done_label(selected), "hw:mdone")])
+    return kb(rows)
+
+
+def models_saved_keyboard(models: list[str], selected: list[str]) -> InlineKeyboardMarkup:
+    rows = [[(("☑️ " if m in selected else "▫️ ") + m, f"hw:mt:{m}")] for m in models] or [[("(none saved — use /addmodel)", "noop")]]
+    rows.append([("◀ Brands", "hw:mback")])
+    rows.append([(_models_done_label(selected), "hw:mdone")])
+    return kb(rows)
+
+
+MODELS_ROOT_TEXT = "🚗 <b>Models</b> — browse by brand, use your saved list, or type one directly. Pick any number, then Done."
 
 
 async def cmd_hunt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     chat = get_chat(chat_id)
-    chat["session"] = {"step": "wizard", "draft": {"types": [], "models": [], "age": None, "stage": "types"}}
+    chat["session"] = {"step": "wizard", "draft": {"types": [], "modelNames": [], "age": None, "stage": "types", "curView": None}}
     save_chat(chat_id, chat)
     calib = normalize_calib(chat["calib"])
     await update.message.reply_text("🎯 <b>Vehicle types</b> — tap to toggle, then Next.", parse_mode="HTML",
@@ -155,16 +190,31 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = cq.data or ""
     chat = get_chat(chat_id)
     try:
+        if data == "noop":
+            return await cq.answer()
         if data.startswith("hw:t:"):
-            return await wizard_toggle(cq, chat, chat_id, "types", int(data[5:]))
+            return await wizard_toggle_type(cq, chat, chat_id, int(data[5:]))
         if data == "hw:tdone":
             return await wizard_stage(cq, chat, chat_id, "models")
-        if data.startswith("hw:m:"):
-            return await wizard_toggle(cq, chat, chat_id, "models", int(data[5:]))
+        if data.startswith("hw:mbrand:"):
+            return await wizard_show_brand(cq, chat, chat_id, int(data[10:]))
+        if data == "hw:msaved":
+            return await wizard_show_saved(cq, chat, chat_id)
+        if data == "hw:mback":
+            return await wizard_show_models_root(cq, chat, chat_id)
+        if data.startswith("hw:mt:"):
+            return await wizard_toggle_model_name(cq, chat, chat_id, data[6:])
+        if data == "hw:mcustom":
+            return await prompt_custom_models(cq, chat, chat_id)
         if data == "hw:mdone":
             return await wizard_stage(cq, chat, chat_id, "age")
         if data.startswith("hw:age:"):
             return await wizard_age(cq, chat, chat_id, data[7:])
+        if data.startswith("hw:n:"):
+            _, _, fi, oi = data.split(":")
+            return await wizard_num_pick(cq, chat, chat_id, int(fi), int(oi))
+        if data.startswith("hw:ncustom:"):
+            return await wizard_num_custom_prompt(cq, chat, chat_id, int(data[11:]))
         if data == "savehunt":
             return await prompt_hunt_name(cq, chat, chat_id)
         if data.startswith("hr:"):
@@ -182,70 +232,210 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await cq.answer("Something went wrong — try /reset")
 
 
-async def wizard_toggle(cq, chat, chat_id, field, idx):
+async def wizard_toggle_type(cq, chat, chat_id, idx):
     d = chat["session"]["draft"]
-    if idx in d[field]:
-        d[field].remove(idx)
+    if idx in d["types"]:
+        d["types"].remove(idx)
     else:
-        d[field].append(idx)
+        d["types"].append(idx)
     save_chat(chat_id, chat)
     calib = normalize_calib(chat["calib"])
-    if field == "types":
-        await cq.edit_message_text("🎯 <b>Vehicle types</b> — tap to toggle, then Next.", parse_mode="HTML",
-                                    reply_markup=types_keyboard(calib, d["types"]))
-    else:
-        await cq.edit_message_text("🚗 <b>Models</b> — tap to toggle, then Next.", parse_mode="HTML",
-                                    reply_markup=models_keyboard(chat["models"], d["models"]))
+    await cq.edit_message_text("🎯 <b>Vehicle types</b> — tap to toggle, then Next.", parse_mode="HTML",
+                                reply_markup=types_keyboard(calib, d["types"]))
     return await cq.answer()
 
 
 async def wizard_stage(cq, chat, chat_id, stage):
     chat["session"]["draft"]["stage"] = stage
+    if stage == "models":
+        chat["session"]["draft"]["curView"] = "root"
     save_chat(chat_id, chat)
     if stage == "models":
-        await cq.edit_message_text("🚗 <b>Models</b> — tap to toggle, then Next.", parse_mode="HTML",
-                                    reply_markup=models_keyboard(chat["models"], chat["session"]["draft"]["models"]))
+        await cq.edit_message_text(MODELS_ROOT_TEXT, parse_mode="HTML",
+                                    reply_markup=models_root_keyboard(chat["session"]["draft"]["modelNames"]))
     if stage == "age":
         await cq.edit_message_text("📋 <b>COE status</b>", parse_mode="HTML", reply_markup=age_keyboard())
     return await cq.answer()
 
 
-async def wizard_age(cq, chat, chat_id, age):
-    chat["session"]["draft"]["age"] = ["parf", "renewed"] if age == "both" else [age]
-    chat["session"]["step"] = "hunt_numbers"
+async def wizard_show_brand(cq, chat, chat_id, brand_idx):
+    brand = BRANDS[brand_idx]
+    chat["session"]["draft"]["curView"] = f"brand:{brand}"
     save_chat(chat_id, chat)
-    await cq.edit_message_text(f"📋 COE status set: <b>{'Both' if age == 'both' else age}</b>", parse_mode="HTML")
-    await cq.message.chat.send_message(
-        "💰 Send your numbers as <b>six values in order</b>, space-separated, use <code>-</code> to skip any:\n"
-        "<code>price dep coeMin coeMax km owners</code>\n\n"
-        "Example: <code>60000 15000 1.5 4 100000 2</code> (max $60k, max $15k/yr dep, 1.5–4 yrs COE left, "
-        "max 100,000km, max 2 owners)\n\nSend just <code>-</code> for all six to search with no numeric filters at all.",
-        parse_mode="HTML")
+    sel = chat["session"]["draft"]["modelNames"]
+    await cq.edit_message_text(f"🚗 <b>{esc(brand)}</b> — tap to toggle.", parse_mode="HTML",
+                                reply_markup=models_brand_keyboard(brand, sel))
     return await cq.answer()
 
 
-async def handle_hunt_numbers(update: Update, chat: dict, chat_id):
-    tokens = update.message.text.strip().split()
-    tokens = (tokens + ["-"] * 6)[:6]
-    price, dep, coe_min, coe_max, km, owners = (None if t == "-" else num(t) for t in tokens)
-    filters_ = {"sort": "DEP_ASC", "price": price, "dep": dep, "coeMin": coe_min, "coeMax": coe_max, "km": km, "owners": owners}
+async def wizard_show_saved(cq, chat, chat_id):
+    chat["session"]["draft"]["curView"] = "saved"
+    save_chat(chat_id, chat)
+    sel = chat["session"]["draft"]["modelNames"]
+    await cq.edit_message_text("⭐ <b>Your saved models</b> — tap to toggle.", parse_mode="HTML",
+                                reply_markup=models_saved_keyboard(chat["models"], sel))
+    return await cq.answer()
+
+
+async def wizard_show_models_root(cq, chat, chat_id):
+    chat["session"]["draft"]["curView"] = "root"
+    save_chat(chat_id, chat)
+    sel = chat["session"]["draft"]["modelNames"]
+    await cq.edit_message_text(MODELS_ROOT_TEXT, parse_mode="HTML", reply_markup=models_root_keyboard(sel))
+    return await cq.answer()
+
+
+async def wizard_toggle_model_name(cq, chat, chat_id, name):
     d = chat["session"]["draft"]
+    sel = d["modelNames"]
+    if name in sel:
+        sel.remove(name)
+    else:
+        sel.append(name)
+    save_chat(chat_id, chat)
+    view = d.get("curView") or "root"
+    if view.startswith("brand:"):
+        brand = view[6:]
+        await cq.edit_message_text(f"🚗 <b>{esc(brand)}</b> — tap to toggle.", parse_mode="HTML",
+                                    reply_markup=models_brand_keyboard(brand, sel))
+    elif view == "saved":
+        await cq.edit_message_text("⭐ <b>Your saved models</b> — tap to toggle.", parse_mode="HTML",
+                                    reply_markup=models_saved_keyboard(chat["models"], sel))
+    else:
+        await cq.edit_message_text(MODELS_ROOT_TEXT, parse_mode="HTML", reply_markup=models_root_keyboard(sel))
+    return await cq.answer()
+
+
+async def prompt_custom_models(cq, chat, chat_id):
+    chat["session"]["step"] = "hunt_custom_models"
+    save_chat(chat_id, chat)
+    await cq.message.chat.send_message(
+        "Type one or more model names, separated by commas or new lines — e.g. "
+        "<code>Mercedes-AMG E63, Ferrari 488</code>.", parse_mode="HTML")
+    return await cq.answer()
+
+
+async def handle_custom_models(update: Update, chat: dict, chat_id):
+    names = [n.strip() for n in re.split(r"[,\n]", update.message.text) if n.strip()]
+    d = chat["session"]["draft"]
+    sel = d["modelNames"]
+    added = [n for n in names if n not in sel]
+    sel.extend(added)
+    chat["session"]["step"] = "wizard"
+    d["curView"] = "root"
+    save_chat(chat_id, chat)
+    await update.message.reply_text(f"Added: {esc(', '.join(added)) if added else '(nothing new)'}", parse_mode="HTML")
+    await update.message.reply_text(MODELS_ROOT_TEXT, parse_mode="HTML", reply_markup=models_root_keyboard(sel))
+
+
+async def wizard_age(cq, chat, chat_id, age):
+    chat["session"]["draft"]["age"] = ["parf", "renewed"] if age == "both" else [age]
+    chat["session"]["draft"]["numIdx"] = 0
+    chat["session"]["draft"]["nums"] = {}
+    chat["session"]["step"] = "wizard"
+    save_chat(chat_id, chat)
+    await cq.edit_message_text(f"📋 COE status set: <b>{'Both' if age == 'both' else age}</b>", parse_mode="HTML")
+    await send_num_field(cq.get_bot(), chat_id, 0)
+    return await cq.answer()
+
+
+# ------------------------------ numbers, one field at a time ------------------------------
+# Quick-pick buttons cover the common cases; "Custom value" drops into a
+# single free-text reply for that one field only, then resumes the button
+# flow for the next field.
+NUM_FIELDS = [
+    ("price", "💰 Max price", [("$30k", "30000"), ("$50k", "50000"), ("$70k", "70000"), ("$100k", "100000"), ("$150k", "150000"), ("No limit", "-")]),
+    ("dep", "📉 Max depreciation/yr", [("$8k", "8000"), ("$12k", "12000"), ("$15k", "15000"), ("$20k", "20000"), ("$30k", "30000"), ("No limit", "-")]),
+    ("coeMin", "⏳ Min COE left", [("0 yrs", "0"), ("1 yr", "1"), ("2 yrs", "2"), ("3 yrs", "3"), ("5 yrs", "5"), ("No limit", "-")]),
+    ("coeMax", "⏳ Max COE left", [("3 yrs", "3"), ("5 yrs", "5"), ("7 yrs", "7"), ("10 yrs", "10"), ("No limit", "-")]),
+    ("km", "🛣 Max mileage", [("50,000km", "50000"), ("80,000km", "80000"), ("100,000km", "100000"), ("150,000km", "150000"), ("200,000km", "200000"), ("No limit", "-")]),
+    ("owners", "👤 Max owners", [("1", "1"), ("2", "2"), ("3", "3"), ("5", "5"), ("No limit", "-")]),
+]
+
+
+def num_field_keyboard(field_idx: int) -> InlineKeyboardMarkup:
+    _, _, opts = NUM_FIELDS[field_idx]
+    rows, row = [], []
+    for i, (text, _) in enumerate(opts):
+        row.append((text, f"hw:n:{field_idx}:{i}"))
+        if len(row) == 3:
+            rows.append(row); row = []
+    if row:
+        rows.append(row)
+    rows.append([("✏️ Custom value", f"hw:ncustom:{field_idx}")])
+    return kb(rows)
+
+
+async def send_num_field(bot, chat_id, field_idx):
+    _, label, _ = NUM_FIELDS[field_idx]
+    await bot.send_message(chat_id, f"{label} — pick one, or enter a custom value.", parse_mode="HTML",
+                            reply_markup=num_field_keyboard(field_idx))
+
+
+async def wizard_num_pick(cq, chat, chat_id, field_idx, opt_idx):
+    key, label, opts = NUM_FIELDS[field_idx]
+    opt_label, raw = opts[opt_idx]
+    value = None if raw == "-" else num(raw)
+    chat["session"]["draft"]["nums"][key] = value
+    next_idx = field_idx + 1
+    await cq.answer(opt_label)
+    if next_idx < len(NUM_FIELDS):
+        chat["session"]["draft"]["numIdx"] = next_idx
+        save_chat(chat_id, chat)
+        await send_num_field(cq.get_bot(), chat_id, next_idx)
+    else:
+        save_chat(chat_id, chat)
+        await finalize_hunt(chat, chat_id, cq.get_bot())
+
+
+async def wizard_num_custom_prompt(cq, chat, chat_id, field_idx):
+    chat["session"]["step"] = "hunt_custom_number"
+    chat["session"]["draft"]["numIdx"] = field_idx
+    save_chat(chat_id, chat)
+    _, label, _ = NUM_FIELDS[field_idx]
+    await cq.message.chat.send_message(f"Type the exact number for {label}.", parse_mode="HTML")
+    return await cq.answer()
+
+
+async def handle_custom_number(update: Update, chat: dict, chat_id):
+    idx = chat["session"]["draft"]["numIdx"]
+    key, label, _ = NUM_FIELDS[idx]
+    val = num(update.message.text.strip())
+    if val is None:
+        return await update.message.reply_text("That doesn't look like a number — try again, or /reset to cancel.")
+    chat["session"]["draft"]["nums"][key] = val
+    chat["session"]["step"] = "wizard"
+    next_idx = idx + 1
+    if next_idx < len(NUM_FIELDS):
+        chat["session"]["draft"]["numIdx"] = next_idx
+        save_chat(chat_id, chat)
+        await send_num_field(update.get_bot(), chat_id, next_idx)
+    else:
+        save_chat(chat_id, chat)
+        await finalize_hunt(chat, chat_id, update.get_bot())
+
+
+async def finalize_hunt(chat: dict, chat_id, bot):
+    d = chat["session"]["draft"]
+    nums = d.get("nums", {})
+    filters_ = {"sort": "DEP_ASC", "price": nums.get("price"), "dep": nums.get("dep"),
+                "coeMin": nums.get("coeMin"), "coeMax": nums.get("coeMax"), "km": nums.get("km"), "owners": nums.get("owners")}
     calib = normalize_calib(chat["calib"])
-    model_names = [chat["models"][i] for i in d["models"] if i < len(chat["models"])]
-    type_names = [calib["veh"][i]["name"] for i in d["types"] if i < len(calib["veh"])]
+    model_names = d.get("modelNames", [])
+    type_names = [calib["veh"][i]["name"] for i in d.get("types", []) if i < len(calib["veh"])]
     queue = build_queue(calib, filters_, d["age"], model_names, type_names)
 
     chat["session"] = {"step": None, "draft": None, "lastHunt": {"models": model_names, "types": type_names, "age": d["age"], "filters": filters_}}
     save_chat(chat_id, chat)
 
     if not queue:
-        return await update.message.reply_text("No searches to build — something went wrong, try /hunt again.")
+        return await bot.send_message(chat_id, "No searches to build — something went wrong, try /hunt again.")
     unverified = ("\n\n⚠️ Not calibrated yet — these links use best-effort guesses. Run /calibrate to make sure they actually work."
                   if not calib["verifiedBase"] else "")
     header = f"✅ <b>{len(queue)} search{'es' if len(queue) != 1 else ''} ready</b>{unverified}"
-    await send_queue_as_text(update.get_bot(), chat_id, header, queue)
-    await update.message.reply_text("Want to keep this hunt?",
-                                     reply_markup=kb([[("💾 Save as hunt", "savehunt")]]))
+    await send_queue_as_text(bot, chat_id, header, queue)
+    await bot.send_message(chat_id, "Want to keep this hunt?", parse_mode="HTML",
+                            reply_markup=kb([[("💾 Save as hunt", "savehunt")]]))
 
 
 async def prompt_hunt_name(cq, chat, chat_id):
@@ -442,8 +632,10 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = (chat.get("session") or {}).get("step")
     if not step:
         return  # no active flow — don't spam a group chat with unrelated replies
-    if step == "hunt_numbers":
-        return await handle_hunt_numbers(update, chat, chat_id)
+    if step == "hunt_custom_models":
+        return await handle_custom_models(update, chat, chat_id)
+    if step == "hunt_custom_number":
+        return await handle_custom_number(update, chat, chat_id)
     if step == "hunt_save_name":
         return await handle_hunt_save_name(update, chat, chat_id)
     if step == "calib_base":
