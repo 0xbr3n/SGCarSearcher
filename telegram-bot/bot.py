@@ -15,7 +15,7 @@ import logging
 import os
 import re
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
+from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update
 from telegram.ext import (
     Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters,
 )
@@ -663,11 +663,45 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ============================== boot ==============================
 
+# Populates Telegram's native "/" command menu (the autocomplete list next to
+# the text box) and the bot's profile description — otherwise Telegram shows
+# raw command names with no explanation, and the chat is blank before anyone
+# starts it. Runs on every startup so it can never drift from the actual
+# command list below.
+COMMANDS = [
+    BotCommand("hunt", "Build a SGCarmart search — types, models, numbers"),
+    BotCommand("hunts", "List, run, or delete saved hunts"),
+    BotCommand("calibrate", "Teach the bot SGCarmart's real filter params"),
+    BotCommand("add", "Paste a listing, get true depreciation + red flags"),
+    BotCommand("shortlist", "Everyone's saved cars, ranked"),
+    BotCommand("models", "Show the saved model list"),
+    BotCommand("addmodel", "Add a model to the saved list"),
+    BotCommand("delmodel", "Remove a model from the saved list"),
+    BotCommand("reset", "Cancel whatever the bot is currently asking"),
+    BotCommand("help", "Show what this bot can do"),
+]
+
+SHORT_DESCRIPTION = "Builds SGCarmart search links for your group — no scraping, just faster searching."
+FULL_DESCRIPTION = (
+    "SG Car Scout builds SGCarmart search links for your group and works out true "
+    "depreciation on listings you paste in. It never scrapes or auto-fetches SGCarmart — "
+    "every result is a link a human taps, same as the site's own terms expect.\n\n"
+    "Send /help for the full command list, or /hunt to get started."
+)
+
+
+async def _post_init(application: Application) -> None:
+    await application.bot.set_my_commands(COMMANDS)
+    await application.bot.set_my_short_description(SHORT_DESCRIPTION)
+    await application.bot.set_my_description(FULL_DESCRIPTION)
+    log.info("Command menu and bot description set.")
+
+
 def build_app() -> Application:
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         raise SystemExit("Set TELEGRAM_BOT_TOKEN (env var or .env file) before running — see README_BOT.md")
-    app = Application.builder().token(token).build()
+    app = Application.builder().token(token).post_init(_post_init).build()
 
     app.add_handler(CommandHandler(["start", "help"], cmd_help))
     app.add_handler(CommandHandler("models", cmd_models))
