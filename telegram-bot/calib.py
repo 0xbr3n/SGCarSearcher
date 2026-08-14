@@ -152,6 +152,18 @@ def reg_year_bound(age: list[str]) -> dict:
     return {}
 
 
+# SGCarmart's Owner filter is a comparator (Any / Less than / More than /
+# Equal to) plus a number -- there is no native "N or fewer" mode. Our "Max
+# owners" concept means "N or fewer", so when the captured comparator is the
+# strict "<" ("Less than"), the number sent has to be N+1 for the result to
+# actually match the label ("max 2 owners" -> search "less than 3", i.e.
+# 0/1/2 all qualify). Any other captured comparator is sent as typed --
+# we only know how to correct for this one specific, confirmed case.
+def _owners_value(n, extras):
+    is_strict_lt = any(v == "<" for _, v in extras)
+    return int(n) + 1 if is_strict_lt else n
+
+
 def build_url(calib_raw: dict | None, filters: dict, age: list[str], model: str | None, veh_name: str | None) -> str:
     c = normalize_calib(calib_raw)
     extras = c["extras"]
@@ -184,7 +196,7 @@ def build_url(calib_raw: dict | None, filters: dict, age: list[str], model: str 
     if filters.get("coeMax") is not None:
         emit(c["p"]["coeMax"], str(filters["coeMax"]), "coeMax")
     if filters.get("owners") is not None:
-        emit(c["p"]["owners"], str(filters["owners"]), "owners")
+        emit(c["p"]["owners"], str(_owners_value(filters["owners"], extras.get("owners", []))), "owners")
     rb = reg_year_bound(age or [])
     if rb.get("from") is not None:
         emit(c["p"]["regFrom"], str(rb["from"]), "regFrom")

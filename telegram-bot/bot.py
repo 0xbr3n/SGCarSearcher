@@ -228,6 +228,8 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if data.startswith("cal:v:"):
             calib = normalize_calib(chat["calib"])
             return await pick_calib_field(cq, chat, chat_id, "veh:" + calib["veh"][int(data[6:])]["name"])
+        if data.startswith("sl:"):
+            return await show_user_shortlist(cq, chat, chat_id, data[3:])
         return await cq.answer()
     except Exception:
         log.exception("callback error")
@@ -601,10 +603,15 @@ async def finish_calib(update: Update, chat: dict, chat_id, raw_value):
     extra_note = ""
     if result.get("extras"):
         extra_bits = ", ".join(f"{esc(p)}={esc(v)}" for p, v in result["extras"])
-        extra_note = (f" A fixed companion param was also captured (<code>{extra_bits}</code>) and will be sent "
-                       "alongside it every time — worth double-checking a real search with this filter actually "
-                       "gives what you expect, since comparator filters (less-than vs. less-than-or-equal, etc) "
-                       "can be off by one.")
+        if kind == "owners" and ["own_c", "<"] in result["extras"]:
+            extra_note = (f" Companion param captured (<code>{extra_bits}</code> = “Less than”) — corrected for "
+                           "automatically, so “max N owners” now sends N+1 under the hood to actually mean "
+                           "“N or fewer” (SGCarmart has no native ≤ mode).")
+        else:
+            extra_note = (f" A fixed companion param was also captured (<code>{extra_bits}</code>) and will be sent "
+                           "alongside it every time — worth double-checking a real search with this filter actually "
+                           "gives what you expect, since comparator filters (less-than vs. less-than-or-equal, etc) "
+                           "can be off by one.")
     # Only price/dep/km actually store anything derived from the test value
     # (a thousands-vs-raw-dollars scale factor) — every other field only
     # learns the parameter NAME. Say so explicitly so it's clear a search
@@ -661,12 +668,14 @@ async def handle_add_blob(update: Update, chat: dict, chat_id):
         save_chat(chat_id, chat)
         return await update.message.reply_text("Couldn't find any figures in that — try pasting the full details block, or /add to try again.")
 
+    user = update.effective_user
     car = {
         "id": int(time.time() * 1000), "name": fields.get("name") or "Unnamed car", "url": fields.get("url") or "",
         "price": fields.get("price"), "dep": fields.get("dep"), "reg": fields.get("reg"),
         "km": fields.get("km"), "arf": fields.get("arf"), "coe": fields.get("coe"),
         "owners": fields.get("owners"), "tax": fields.get("tax"), "deregListed": fields.get("deregListed"),
         "coeType": fields.get("coeType") or "original", "notes": "",
+        "addedBy": {"id": user.id, "name": user.full_name} if user else None,
     }
     chat["cars"].insert(0, car)
     save_chat(chat_id, chat)
@@ -698,11 +707,10 @@ async def handle_add_blob(update: Update, chat: dict, chat_id):
         parse_mode="HTML")
 
 
-async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = get_chat(update.effective_chat.id)
-    if not chat["cars"]:
-        return await update.message.reply_text("No cars saved yet. Paste one with /add.")
-    rows = sorted(score_all(chat["cars"]), key=lambda r: (r["score"] if r["score"] is not None else -1), reverse=True)[:15]
+def _render_shortlist(cars: list[dict], title: str) -> str:
+    if not cars:
+        return f"<b>{esc(title)}</b>\n\n(nothing here yet)"
+    rows = sorted(score_all(cars), key=lambda r: (r["score"] if r["score"] is not None else -1), reverse=True)[:15]
     lines = []
     for r in rows:
         d, c = r["d"], r["c"]
@@ -714,8 +722,44 @@ async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if d.get("yearsLeft") is not None:
                 bits += f" · {d['yearsLeft']:.1f}y COE left"
         lines.append(head + "\n" + bits)
-    await update.message.reply_text(
-        f"<b>Shortlist</b> ({len(chat['cars'])}, top {len(rows)} by score)\n\n" + "\n\n".join(lines), parse_mode="HTML")
+    return f"<b>{esc(title)}</b> ({len(cars)}, top {len(rows)} by score)\n\n" + "\n\n".join(lines)
+
+
+def _distinct_contributors(cars: list[dict]) -> list[tuple[int, str, int]]:
+    seen: dict[int, dict] = {}
+    for c in cars:
+        ab = c.get("addedBy")
+        if not ab:
+            continue
+        entry = seen.setdefault(ab["id"], {"name": ab["name"], "count": 0})
+        entry["count"] += 1
+    return [(uid, v["name"], v["count"]) for uid, v in seen.items()]
+
+
+async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = get_chat(update.effective_chat.id)
+    if not chat["cars"]:
+        return await update.message.reply_text("No cars saved yet. Paste one with /add.")
+    contributors = _distinct_contributors(chat["cars"])
+    # Only worth asking "whose?" once more than one person has actually
+    # added something — a solo chat or one where nobody's attributed yet
+    # (older entries, before this feature) just shows everyone's, as before.
+    if len(contributors) <= 1:
+        return await update.message.reply_text(_render_shortlist(chat["cars"], "Shortlist"), parse_mode="HTML")
+    rows = [[("👥 Everyone", "sl:all")]]
+    rows += [[(f"{name} ({count})", f"sl:{uid}")] for uid, name, count in contributors]
+    await update.message.reply_text("Whose shortlist do you want to see?", reply_markup=kb(rows))
+
+
+async def show_user_shortlist(cq, chat, chat_id, sel: str):
+    if sel == "all":
+        cars, title = chat["cars"], "Everyone's shortlist"
+    else:
+        uid = int(sel)
+        cars = [c for c in chat["cars"] if (c.get("addedBy") or {}).get("id") == uid]
+        title = f"{cars[0]['addedBy']['name']}'s shortlist" if cars else "Shortlist"
+    await cq.message.chat.send_message(_render_shortlist(cars, title), parse_mode="HTML")
+    return await cq.answer()
 
 
 async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
