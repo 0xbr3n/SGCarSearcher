@@ -781,7 +781,10 @@ def _render_shortlist(cars: list[dict], title: str) -> str:
             bits = f"  {money(c.get('price'))} · true dep {money(d.get('effDep'))}/yr"
             if d.get("yearsLeft") is not None:
                 bits += f" · {d['yearsLeft']:.1f}y COE left"
-        lines.append(head + "\n" + bits)
+        entry = head + "\n" + bits
+        if c.get("url"):
+            entry += f"\n  🔗 <a href=\"{esc(c['url'])}\">Open listing</a>"
+        lines.append(entry)
     return f"<b>{esc(title)}</b> ({len(cars)}, top {len(rows)} by score)\n\n" + "\n\n".join(lines)
 
 
@@ -832,7 +835,7 @@ async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(contributors) <= 1:
         viewer_id = update.effective_user.id if update.effective_user else None
         text, delkb = _shortlist_view(chat, "all", viewer_id)
-        return await update.message.reply_text(text, parse_mode="HTML", reply_markup=delkb)
+        return await update.message.reply_text(text, parse_mode="HTML", reply_markup=delkb, link_preview_options=NO_PREVIEW)
     rows = [[("👥 Everyone", "sl:all")]]
     rows += [[(f"{name} ({count})", f"sl:{uid}")] for uid, name, count in contributors]
     await update.message.reply_text("Whose shortlist do you want to see?", reply_markup=kb(rows))
@@ -840,7 +843,7 @@ async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_user_shortlist(cq, chat, chat_id, sel: str):
     text, delkb = _shortlist_view(chat, sel, cq.from_user.id)
-    await cq.message.chat.send_message(text, parse_mode="HTML", reply_markup=delkb)
+    await cq.message.chat.send_message(text, parse_mode="HTML", reply_markup=delkb, link_preview_options=NO_PREVIEW)
     return await cq.answer()
 
 
@@ -854,7 +857,7 @@ async def delete_own_car(cq, chat, chat_id, car_id, view_sel):
     chat["cars"] = [c for c in chat["cars"] if c["id"] != car_id]
     save_chat(chat_id, chat)
     text, delkb = _shortlist_view(chat, view_sel, cq.from_user.id)
-    await cq.edit_message_text(text, parse_mode="HTML", reply_markup=delkb)
+    await cq.edit_message_text(text, parse_mode="HTML", reply_markup=delkb, link_preview_options=NO_PREVIEW)
     return await cq.answer(f"Deleted {car.get('name') or 'that entry'}")
 
 
