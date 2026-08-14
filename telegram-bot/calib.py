@@ -31,7 +31,12 @@ def default_calib() -> dict:
         "verified": {"model": False, "price": False, "dep": False, "km": False, "coeMin": False,
                      "coeMax": False, "owners": False, "regFrom": False, "regTo": False},
         "scale": {"price": 1000, "dep": 1000, "km": 1},
-        "veh": [{"name": name, "param": "VEH", "value": value, "verified": False} for name, value in TYPES_DEFAULT],
+        # kind -> [[param, value], ...] -- fixed "companion" params some site
+        # filters need alongside the main one (e.g. Owners is actually two
+        # params: a comparator like own_c=< plus the number own=2). Replayed
+        # verbatim on every future request for that field.
+        "extras": {},
+        "veh": [{"name": name, "param": "VEH", "value": value, "verified": False, "extras": []} for name, value in TYPES_DEFAULT],
     }
 
 
@@ -42,7 +47,10 @@ def normalize_calib(c: dict | None) -> dict:
     d["p"].update(c.get("p") or {})
     d["verified"].update(c.get("verified") or {})
     d["scale"].update(c.get("scale") or {})
+    d["extras"] = {**d["extras"], **(c.get("extras") or {})}
     veh = c.get("veh") or []
+    for v in veh:
+        v.setdefault("extras", [])
     have = {v["name"] for v in veh}
     for dv in d["veh"]:
         if dv["name"] not in have:
@@ -58,7 +66,17 @@ def _host(url: str) -> str:
     return h[4:] if h.startswith("www.") else h
 
 
+def _num_eq(a, b) -> bool:
+    try:
+        return float(a) == float(b)
+    except (TypeError, ValueError):
+        return False
+
+
 def calib_diff(base_url: str, filled_url: str) -> dict:
+    """Returns every param that changed between the two URLs, not just one --
+    some site filters (like Owners: comparator + number) genuinely need more
+    than one param. Disambiguating which is which happens in calib_apply."""
     try:
         bu, fu = urlsplit(base_url.strip()), urlsplit(filled_url.strip())
         if not _host(base_url).endswith("sgcarmart.com") or not _host(filled_url).endswith("sgcarmart.com"):
@@ -68,12 +86,8 @@ def calib_diff(base_url: str, filled_url: str) -> dict:
         diffs = [(k, v) for k, v in fk if bk.get(k) != v]
         if not diffs:
             return {"err": "No difference found — did you set a filter before copying the second URL?"}
-        if len(diffs) > 1:
-            names = ", ".join(k for k, _ in diffs)
-            return {"err": f"Found {len(diffs)} changed params ({names}) — set ONLY that one filter, nothing else, then copy the URL"}
-        param, value = diffs[0]
         origin = f"{fu.scheme}://{fu.netloc}{fu.path}"
-        return {"ok": True, "param": param, "value": value, "origin": origin}
+        return {"ok": True, "diffs": diffs, "origin": origin}
     except Exception:
         return {"err": "That doesn't look like a valid URL"}
 
@@ -82,23 +96,44 @@ def calib_apply(calib: dict | None, kind: str, raw_value, base_url: str, filled_
     d = calib_diff(base_url, filled_url)
     if not d.get("ok"):
         return normalize_calib(calib), d
+    diffs = d["diffs"]
     c = normalize_calib(calib)
     c["base"] = d["origin"]
     c["verifiedBase"] = True
+
+    if len(diffs) == 1:
+        param, value = diffs[0]
+        extras = []
+    else:
+        if not raw_value:
+            # Ask the caller to collect the value the user actually typed on
+            # the site, then call this again -- that's what disambiguates
+            # which changed param is the dynamic one vs. a fixed companion.
+            return c, {"ok": False, "needValue": True, "diffs": diffs}
+        raw_s = str(raw_value).strip()
+        matches = [i for i, (_, v) in enumerate(diffs) if v == raw_s or _num_eq(v, raw_s)]
+        if len(matches) != 1:
+            names = ", ".join(k for k, _ in diffs)
+            return c, {"err": f"Found {len(diffs)} changed params ({names}) and couldn't tell which one is '{raw_value}' — set ONLY that one filter, nothing else, then copy the URL"}
+        idx = matches[0]
+        param, value = diffs[idx]
+        extras = [list(diffs[i]) for i in range(len(diffs)) if i != idx]
+
     if kind.startswith("veh:"):
         name = kind[4:]
         for v in c["veh"]:
             if v["name"] == name:
-                v["param"], v["value"], v["verified"] = d["param"], d["value"], True
+                v["param"], v["value"], v["verified"], v["extras"] = param, value, True, extras
     else:
-        c["p"][kind] = d["param"]
+        c["p"][kind] = param
         c["verified"][kind] = True
+        c["extras"][kind] = extras
         if kind in ("price", "dep", "km") and raw_value:
             from carmath import num
-            raw, pv = num(raw_value), num(d["value"])
+            raw, pv = num(raw_value), num(value)
             if raw and pv:
                 c["scale"][kind] = 1000 if (raw / pv) >= 900 else 1
-    return c, {"ok": True, "param": d["param"], "value": d["value"]}
+    return c, {"ok": True, "param": param, "value": value, "extras": extras}
 
 
 def _scale_out(v: float, div: float) -> str:
@@ -119,9 +154,16 @@ def reg_year_bound(age: list[str]) -> dict:
 
 def build_url(calib_raw: dict | None, filters: dict, age: list[str], model: str | None, veh_name: str | None) -> str:
     c = normalize_calib(calib_raw)
+    extras = c["extras"]
     p = []
+
+    def emit(param, value, kind=None):
+        p.append((param, value))
+        for ep, ev in extras.get(kind, []):
+            p.append((ep, ev))
+
     if model:
-        p.append((c["p"]["model"], model))
+        emit(c["p"]["model"], model, "model")
     p.append((c["p"]["avl"], "2"))
     p.append((c["p"]["rpg"], "40"))
     p.append((c["p"]["sort"], filters.get("sort") or "DEP_ASC"))
@@ -129,23 +171,25 @@ def build_url(calib_raw: dict | None, filters: dict, age: list[str], model: str 
         v = next((x for x in c["veh"] if x["name"] == veh_name), None)
         if v:
             p.append((v["param"], v["value"]))
+            for ep, ev in v.get("extras", []):
+                p.append((ep, ev))
     if filters.get("price"):
-        p.append((c["p"]["price"], _scale_out(filters["price"], c["scale"]["price"])))
+        emit(c["p"]["price"], _scale_out(filters["price"], c["scale"]["price"]), "price")
     if filters.get("dep"):
-        p.append((c["p"]["dep"], _scale_out(filters["dep"], c["scale"]["dep"])))
+        emit(c["p"]["dep"], _scale_out(filters["dep"], c["scale"]["dep"]), "dep")
     if filters.get("km"):
-        p.append((c["p"]["km"], _scale_out(filters["km"], c["scale"]["km"])))
+        emit(c["p"]["km"], _scale_out(filters["km"], c["scale"]["km"]), "km")
     if filters.get("coeMin") is not None:
-        p.append((c["p"]["coeMin"], str(filters["coeMin"])))
+        emit(c["p"]["coeMin"], str(filters["coeMin"]), "coeMin")
     if filters.get("coeMax") is not None:
-        p.append((c["p"]["coeMax"], str(filters["coeMax"])))
+        emit(c["p"]["coeMax"], str(filters["coeMax"]), "coeMax")
     if filters.get("owners") is not None:
-        p.append((c["p"]["owners"], str(filters["owners"])))
+        emit(c["p"]["owners"], str(filters["owners"]), "owners")
     rb = reg_year_bound(age or [])
     if rb.get("from") is not None:
-        p.append((c["p"]["regFrom"], str(rb["from"])))
+        emit(c["p"]["regFrom"], str(rb["from"]), "regFrom")
     if rb.get("to") is not None:
-        p.append((c["p"]["regTo"], str(rb["to"])))
+        emit(c["p"]["regTo"], str(rb["to"]), "regTo")
     return c["base"] + "?" + urlencode(p)
 
 

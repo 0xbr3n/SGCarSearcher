@@ -579,11 +579,32 @@ async def finish_calib(update: Update, chat: dict, chat_id, raw_value):
     draft = chat["session"]["draft"]
     kind = draft["kind"]
     calib, result = calib_apply(chat["calib"], kind, raw_value, draft["baseUrl"], draft["filledUrl"])
+
+    if result.get("needValue"):
+        # More than one param changed and there's no test value yet to tell
+        # which is the dynamic one (e.g. Owners = a comparator param PLUS a
+        # number param). Don't clear the session -- ask for the value and
+        # retry with the same base/filled URLs already on file.
+        names = ", ".join(k for k, _ in result["diffs"])
+        chat["session"]["step"] = "calib_rawvalue"
+        save_chat(chat_id, chat)
+        return await update.message.reply_text(
+            f"Found {len(result['diffs'])} changed params ({esc(names)}) for this filter — some SGCarmart filters "
+            "genuinely need more than one (e.g. a comparator plus a number). Send the exact value you typed into "
+            "that filter on the site so I can tell which param is which.", parse_mode="HTML")
+
     chat["calib"] = calib
     chat["session"] = None
     save_chat(chat_id, chat)
     if not result.get("ok"):
         return await update.message.reply_text(f"❌ {esc(result['err'])}\n\nTry /calibrate again.", parse_mode="HTML")
+    extra_note = ""
+    if result.get("extras"):
+        extra_bits = ", ".join(f"{esc(p)}={esc(v)}" for p, v in result["extras"])
+        extra_note = (f" A fixed companion param was also captured (<code>{extra_bits}</code>) and will be sent "
+                       "alongside it every time — worth double-checking a real search with this filter actually "
+                       "gives what you expect, since comparator filters (less-than vs. less-than-or-equal, etc) "
+                       "can be off by one.")
     # Only price/dep/km actually store anything derived from the test value
     # (a thousands-vs-raw-dollars scale factor) — every other field only
     # learns the parameter NAME. Say so explicitly so it's clear a search
@@ -592,11 +613,11 @@ async def finish_calib(update: Update, chat: dict, chat_id, raw_value):
     if kind in CALIB_NEEDS_VALUE:
         await update.message.reply_text(
             f"✅ Calibrated: parameter <code>{esc(result['param'])}</code> (detected from your test value "
-            f"{esc(result['value'])}). Future hunts send your own numbers through this param.", parse_mode="HTML")
+            f"{esc(result['value'])}).{extra_note} Future hunts send your own numbers through this param.", parse_mode="HTML")
     else:
         await update.message.reply_text(
             f"✅ Calibrated: parameter is <code>{esc(result['param'])}</code>. Only the parameter name was learned — "
-            f"future hunts use whatever you actually search for, not “{esc(result['value'])}”.", parse_mode="HTML")
+            f"future hunts use whatever you actually search for, not “{esc(result['value'])}”.{extra_note}", parse_mode="HTML")
 
 
 # ------------------------------ /add + /shortlist ------------------------------
