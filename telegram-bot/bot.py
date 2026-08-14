@@ -542,13 +542,26 @@ async def handle_calib_rawvalue(update: Update, chat: dict, chat_id):
 
 async def finish_calib(update: Update, chat: dict, chat_id, raw_value):
     draft = chat["session"]["draft"]
-    calib, result = calib_apply(chat["calib"], draft["kind"], raw_value, draft["baseUrl"], draft["filledUrl"])
+    kind = draft["kind"]
+    calib, result = calib_apply(chat["calib"], kind, raw_value, draft["baseUrl"], draft["filledUrl"])
     chat["calib"] = calib
     chat["session"] = None
     save_chat(chat_id, chat)
     if not result.get("ok"):
         return await update.message.reply_text(f"❌ {esc(result['err'])}\n\nTry /calibrate again.", parse_mode="HTML")
-    await update.message.reply_text(f"✅ Calibrated: <code>{esc(result['param'])}={esc(result['value'])}</code>. Future hunts use this.", parse_mode="HTML")
+    # Only price/dep/km actually store anything derived from the test value
+    # (a thousands-vs-raw-dollars scale factor) — every other field only
+    # learns the parameter NAME. Say so explicitly so it's clear a search
+    # value like "civic" or "50" used only to detect the param isn't locked
+    # in as what future hunts search for.
+    if kind in CALIB_NEEDS_VALUE:
+        await update.message.reply_text(
+            f"✅ Calibrated: parameter <code>{esc(result['param'])}</code> (detected from your test value "
+            f"{esc(result['value'])}). Future hunts send your own numbers through this param.", parse_mode="HTML")
+    else:
+        await update.message.reply_text(
+            f"✅ Calibrated: parameter is <code>{esc(result['param'])}</code>. Only the parameter name was learned — "
+            f"future hunts use whatever you actually search for, not “{esc(result['value'])}”.", parse_mode="HTML")
 
 
 # ------------------------------ /add + /shortlist ------------------------------
