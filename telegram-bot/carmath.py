@@ -94,6 +94,8 @@ def derive(c: dict, now: date | None = None) -> dict:
 
 
 def flags(c: dict, d: dict) -> list[tuple[str, str]]:
+    if d.get("reg") is None:
+        return []  # no registration date -> derive() bailed early -> nothing here is actually known
     f = []
     km_yr = d.get("kmYr")
     age = d.get("age") or 0

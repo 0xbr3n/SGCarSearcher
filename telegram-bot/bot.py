@@ -573,7 +573,9 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_chat(chat_id, chat)
     await update.message.reply_text(
         "Paste the listing's details block (price, depreciation, reg date, mileage, ARF, owners, road tax) "
-        "— copy it straight off the SGCarmart ad.")
+        "— copy it straight off the SGCarmart ad. Or just share/paste the <b>listing URL</b> on its own to save it "
+        "as a bookmark for now — I can't fetch the figures myself from a link alone (no auto-scraping SGCarmart, "
+        "by design), so that part still needs a human to open it and copy the details across.", parse_mode="HTML")
 
 
 async def handle_add_blob(update: Update, chat: dict, chat_id):
@@ -593,6 +595,15 @@ async def handle_add_blob(update: Update, chat: dict, chat_id):
     }
     chat["cars"].insert(0, car)
     save_chat(chat_id, chat)
+
+    # A bare link (no other figures found) is a valid, common case — say so
+    # plainly rather than showing an almost-empty "figures" summary.
+    if got == ["listing URL"]:
+        await update.message.reply_text(
+            f"🔖 Saved as a bookmark — <a href=\"{esc(car['url'])}\">link</a> logged, no figures yet.\n\n"
+            "Paste the listing's details block (from the same ad) to add price/depreciation/etc and compute "
+            "true depreciation, or leave it as-is for now.", parse_mode="HTML", link_preview_options=NO_PREVIEW)
+        return
 
     d = derive(car)
     fs = flags(car, d)
