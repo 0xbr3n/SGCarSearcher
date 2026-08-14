@@ -16,10 +16,10 @@ TYPES_DEFAULT = [
 
 CAL_FIELDS = [
     ("model", "Model search box"), ("price", "Max price"), ("dep", "Max depreciation /yr"),
-    ("km", "Max mileage"), ("coeMin", "Min COE left"), ("coeMax", "Max COE left"),
+    ("km", "Max mileage"), ("coeMin", "Min COE left (not Registration Year!)"), ("coeMax", "Max COE left (not Registration Year!)"),
     ("owners", "Max no. of owners"),
-    ("regFrom", "First registered from (min reg year) — PARF-only hunts"),
-    ("regTo", "First registered before (max reg year) — renewed-COE-only hunts"),
+    ("regFrom", "Registration Year, from — PARF-only hunts"),
+    ("regTo", "Registration Year, to — renewed-COE-only hunts"),
 ]
 
 

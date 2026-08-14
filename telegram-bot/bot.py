@@ -540,6 +540,25 @@ async def cmd_calibrate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def pick_calib_field(cq, chat, chat_id, kind):
     chat["session"] = {"step": "calib_base", "draft": {"kind": kind}}
     save_chat(chat_id, chat)
+    # Two different groups have now independently miscalibrated coeMin/
+    # coeMax against SGCarmart's Registration Year field, because the real
+    # site has no separate "COE years left" control -- Registration Year
+    # (a from-year/to-year picker) is the only year-range filter that
+    # exists, so it's the natural thing to reach for by mistake. Head this
+    # off at the point of choice, before any URLs get collected.
+    if kind in ("coeMin", "coeMax"):
+        await cq.message.chat.send_message(
+            "⚠️ Heads up: SGCarmart's real filter panel has <b>no separate \"COE years left\" control</b> — only "
+            "Price, Depreciation, Registration Year, and Vehicle Type. If the only year-range filter you can find "
+            "on the site is called <b>Registration Year</b>, that's a <i>different</i> field (it's what "
+            "<code>regFrom</code>/<code>regTo</code> are for, and is used automatically for PARF/renewed hunts) — "
+            "don't calibrate COE Min/Max against it, or it'll break the PARF/renewed filter the same way twice "
+            "already. Only continue here if you've genuinely found a distinct \"years of COE left\" filter "
+            "elsewhere on the site.", parse_mode="HTML")
+    if kind in ("regFrom", "regTo"):
+        await cq.message.chat.send_message(
+            "ℹ️ This is SGCarmart's <b>Registration Year</b> filter (a from-year/to-year picker) — used "
+            "automatically to tell PARF cars from renewed-COE ones.", parse_mode="HTML")
     reuse = f"\n\nOr reply <code>same</code> to reuse: {esc(chat.get('lastBaseUrl'))}" if chat.get("lastBaseUrl") else ""
     await cq.message.chat.send_message(f"Send the <b>plain</b> sgcarmart.com URL — no filters set at all.{reuse}", parse_mode="HTML")
     return await cq.answer()
