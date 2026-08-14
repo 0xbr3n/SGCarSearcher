@@ -594,10 +594,29 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "by design), so that part still needs a human to open it and copy the details across.", parse_mode="HTML")
 
 
+def _is_search_url(url: str) -> bool:
+    """True for a SGCarmart *search results* URL (many cars), as opposed to
+    one specific listing's page. These are exactly the endpoint shapes our
+    own calib.py builds hunts against — /used-cars/listing and the legacy
+    /used_cars/listing.php — vs. an individual ad's page (typically under
+    /used-cars/info/ or /used_cars/info.php)."""
+    path = re.sub(r"^https?://[^/]+", "", url).split("?")[0].lower()
+    return path.rstrip("/").endswith(("/used-cars/listing", "/used_cars/listing.php"))
+
+
 async def handle_add_blob(update: Update, chat: dict, chat_id):
     import time
     fields, got = parse_listing(update.message.text)
     chat["session"] = None
+
+    if fields.get("url") and _is_search_url(fields["url"]):
+        save_chat(chat_id, chat)
+        return await update.message.reply_text(
+            "That's a <b>search results</b> link (many cars), not one specific listing — /add is for logging a "
+            "single car you've found. Open the link, pick a listing you're interested in, then paste <i>that</i> "
+            "ad's URL (or its details block) here instead.\n\nLooking to save the search itself? Use /hunt → "
+            "💾 Save as hunt.", parse_mode="HTML")
+
     if not got:
         save_chat(chat_id, chat)
         return await update.message.reply_text("Couldn't find any figures in that — try pasting the full details block, or /add to try again.")
@@ -648,9 +667,12 @@ async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for r in rows:
         d, c = r["d"], r["c"]
         head = f"<b>{esc(c['name'])}</b>" + (f" — {r['score']}pts" if r["score"] is not None else "")
-        bits = f"  {money(c.get('price'))} · true dep {money(d.get('effDep'))}/yr"
-        if d.get("yearsLeft") is not None:
-            bits += f" · {d['yearsLeft']:.1f}y COE left"
+        if d.get("reg") is None:
+            bits = "  🔖 bookmark, no figures yet — paste details with /add to complete it"
+        else:
+            bits = f"  {money(c.get('price'))} · true dep {money(d.get('effDep'))}/yr"
+            if d.get("yearsLeft") is not None:
+                bits += f" · {d['yearsLeft']:.1f}y COE left"
         lines.append(head + "\n" + bits)
     await update.message.reply_text(
         f"<b>Shortlist</b> ({len(chat['cars'])}, top {len(rows)} by score)\n\n" + "\n\n".join(lines), parse_mode="HTML")
