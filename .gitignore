@@ -1,3 +1,7 @@
 node_modules/
 .netlify/
 .env
+telegram-bot/data/*.json
+telegram-bot/.env
+telegram-bot/__pycache__/
+telegram-bot/venv/

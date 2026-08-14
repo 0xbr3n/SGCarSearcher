@@ -4,7 +4,11 @@ A single-page app for hunting Singapore used cars: builds SGCarmart searches, re
 
 ## Telegram bot for the group
 
-The same search-building and true-depreciation logic is also available as a Telegram bot (`netlify/functions/`), so a group of friends can share models, saved hunts, calibration, and a shortlist without anyone installing anything. It builds links the same way the app does — **it never scrapes or auto-fetches SGCarmart**; every result is a link a human taps, same as the site's own terms expect. See **[BOT_SETUP.md](BOT_SETUP.md)** for the 10-minute setup (needs a GitHub-connected Netlify deploy rather than drag-and-drop, since the bot has one small dependency).
+The same search-building and true-depreciation logic is also available as a Telegram bot, so a group of friends can share models, saved hunts, calibration, and a shortlist without anyone installing the app. It builds links the same way the app does — **it never scrapes or auto-fetches SGCarmart**; every result is a link a human taps, same as the site's own terms expect.
+
+**Two versions exist, use `telegram-bot/` unless you specifically want the other:**
+- **[`telegram-bot/`](telegram-bot/README_BOT.md)** — standalone Python bot, `python bot.py` and you're done. No website, no Netlify, no webhook, no public URL. Runs on your own PC/server or any free host that can keep a Python process alive.
+- **[`netlify/functions/`](BOT_SETUP.md)** — the same bot as a Netlify Functions webhook, for if you'd rather it ride along on the same deploy as the PWA below and don't want to keep a process running yourself.
 
 ## Put it on your iPhone home screen
 
