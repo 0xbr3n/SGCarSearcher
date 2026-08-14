@@ -549,12 +549,13 @@ async def pick_calib_field(cq, chat, chat_id, kind):
     if kind in ("coeMin", "coeMax"):
         await cq.message.chat.send_message(
             "⚠️ Heads up: SGCarmart's real filter panel has <b>no separate \"COE years left\" control</b> — only "
-            "Price, Depreciation, Registration Year, and Vehicle Type. If the only year-range filter you can find "
-            "on the site is called <b>Registration Year</b>, that's a <i>different</i> field (it's what "
-            "<code>regFrom</code>/<code>regTo</code> are for, and is used automatically for PARF/renewed hunts) — "
-            "don't calibrate COE Min/Max against it, or it'll break the PARF/renewed filter the same way twice "
-            "already. Only continue here if you've genuinely found a distinct \"years of COE left\" filter "
-            "elsewhere on the site.", parse_mode="HTML")
+            "Price, Depreciation, Registration Year, and Vehicle Type. For PARF-only hunts, min/max COE left "
+            "already works without calibrating it — it's translated into a Registration Year range automatically "
+            "(COE expires exactly 10 years after registration, so the two are mathematically the same thing for a "
+            "never-renewed car). If the only year-range filter you can find on the site is <b>Registration Year</b>, "
+            "that's a <i>different</i> field — <code>regFrom</code>/<code>regTo</code> below — don't calibrate COE "
+            "Min/Max against it, or it'll break both. Only continue here if you've genuinely found a distinct "
+            "\"years of COE left\" filter elsewhere on the site.", parse_mode="HTML")
     if kind in ("regFrom", "regTo"):
         await cq.message.chat.send_message(
             "ℹ️ This is SGCarmart's <b>Registration Year</b> filter (a from-year/to-year picker) — used "

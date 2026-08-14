@@ -152,6 +152,38 @@ def reg_year_bound(age: list[str]) -> dict:
     return {}
 
 
+# SGCarmart's real filter panel has no "years of COE left" control at all --
+# only Price, Depreciation, Registration Year, and Vehicle Type (confirmed
+# from the actual site). But for a never-renewed PARF car, COE expires
+# EXACTLY 10 years after registration, so "years left" is really just a
+# registration-year range wearing a different label: min N years left means
+# "registered no earlier than (this year + N - 10)", and likewise for max.
+# This only holds for PARF cars -- a renewed car's COE cycle restarts at its
+# renewal date, which this app doesn't track separately from the original
+# registration date, so the same math would be wrong there. Only applied for
+# an exactly-PARF-only hunt; renewed/both hunts leave coeMin/coeMax unsent
+# rather than silently guess wrong.
+def coe_left_to_reg_year_bound(coe_min, coe_max) -> dict:
+    y = date.today().year
+    bound = {}
+    if coe_min is not None:
+        bound["from"] = int(y + coe_min - 10)
+    if coe_max is not None:
+        bound["to"] = int(y + coe_max - 10)
+    return bound
+
+
+def _merge_reg_year_bounds(*bounds: dict) -> dict:
+    los = [b["from"] for b in bounds if b.get("from") is not None]
+    his = [b["to"] for b in bounds if b.get("to") is not None]
+    out = {}
+    if los:
+        out["from"] = max(los)
+    if his:
+        out["to"] = min(his)
+    return out
+
+
 # SGCarmart's Owner filter is a comparator (Any / Less than / More than /
 # Equal to) plus a number -- there is no native "N or fewer" mode. Our "Max
 # owners" concept means "N or fewer", so when the captured comparator is the
@@ -197,7 +229,13 @@ def build_url(calib_raw: dict | None, filters: dict, age: list[str], model: str 
         emit(c["p"]["coeMax"], str(filters["coeMax"]), "coeMax")
     if filters.get("owners") is not None:
         emit(c["p"]["owners"], str(_owners_value(filters["owners"], extras.get("owners", []))), "owners")
+
     rb = reg_year_bound(age or [])
+    if (age or []) == ["parf"] and (filters.get("coeMin") is not None or filters.get("coeMax") is not None):
+        # COE-left only has an exact reg-year meaning for PARF cars -- merge
+        # (intersect) with the age-based floor rather than overwrite it, so
+        # neither bound quietly loses to the other.
+        rb = _merge_reg_year_bounds(rb, coe_left_to_reg_year_bound(filters.get("coeMin"), filters.get("coeMax")))
     if rb.get("from") is not None:
         emit(c["p"]["regFrom"], str(rb["from"]), "regFrom")
     if rb.get("to") is not None:
