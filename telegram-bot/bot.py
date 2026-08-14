@@ -230,6 +230,11 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return await pick_calib_field(cq, chat, chat_id, "veh:" + calib["veh"][int(data[6:])]["name"])
         if data.startswith("sl:"):
             return await show_user_shortlist(cq, chat, chat_id, data[3:])
+        if data == "add_done":
+            return await finish_add(cq, chat, chat_id)
+        if data.startswith("car_del:"):
+            _, car_id_s, view_sel = data.split(":", 2)
+            return await delete_own_car(cq, chat, chat_id, int(car_id_s), view_sel)
         return await cq.answer()
     except Exception:
         log.exception("callback error")
@@ -652,13 +657,13 @@ async def finish_calib(update: Update, chat: dict, chat_id, raw_value):
 async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     chat = get_chat(chat_id)
-    chat["session"] = {"step": "add_blob"}
+    chat["session"] = {"step": "add_blob", "carId": None}
     save_chat(chat_id, chat)
     await update.message.reply_text(
         "Paste the listing's details block (price, depreciation, reg date, mileage, ARF, owners, road tax) "
-        "— copy it straight off the SGCarmart ad. Or just share/paste the <b>listing URL</b> on its own to save it "
-        "as a bookmark for now — I can't fetch the figures myself from a link alone (no auto-scraping SGCarmart, "
-        "by design), so that part still needs a human to open it and copy the details across.", parse_mode="HTML")
+        "and/or the <b>listing URL</b> — in any order, across as many messages as you like (e.g. paste the link "
+        "now, the details block after). Each paste fills in whatever's still missing on the same car. Tap "
+        "✅ Done when you're finished, or just move on to another command.", parse_mode="HTML")
 
 
 def _is_search_url(url: str) -> bool:
@@ -671,10 +676,23 @@ def _is_search_url(url: str) -> bool:
     return path.rstrip("/").endswith(("/used-cars/listing", "/used_cars/listing.php"))
 
 
+_ADD_FIELD_KEYS = ("name", "url", "price", "dep", "reg", "km", "arf", "coe", "owners", "tax", "deregListed")
+
+
+def _add_missing_bits(car: dict) -> list[str]:
+    missing = []
+    if not car.get("url"):
+        missing.append("the listing URL")
+    if car.get("price") is None and car.get("dep") is None:
+        missing.append("price/depreciation")
+    if car.get("reg") is None:
+        missing.append("reg date")
+    return missing
+
+
 async def handle_add_blob(update: Update, chat: dict, chat_id):
     import time
     fields, got = parse_listing(update.message.text)
-    chat["session"] = None
 
     if fields.get("url") and _is_search_url(fields["url"]):
         save_chat(chat_id, chat)
@@ -686,32 +704,39 @@ async def handle_add_blob(update: Update, chat: dict, chat_id):
 
     if not got:
         save_chat(chat_id, chat)
-        return await update.message.reply_text("Couldn't find any figures in that — try pasting the full details block, or /add to try again.")
+        return await update.message.reply_text("Couldn't find any figures in that — try pasting the full details block or a listing URL, or /add to try again.")
 
-    user = update.effective_user
-    car = {
-        "id": int(time.time() * 1000), "name": fields.get("name") or "Unnamed car", "url": fields.get("url") or "",
-        "price": fields.get("price"), "dep": fields.get("dep"), "reg": fields.get("reg"),
-        "km": fields.get("km"), "arf": fields.get("arf"), "coe": fields.get("coe"),
-        "owners": fields.get("owners"), "tax": fields.get("tax"), "deregListed": fields.get("deregListed"),
-        "coeType": fields.get("coeType") or "original", "notes": "",
-        "addedBy": {"id": user.id, "name": user.full_name} if user else None,
-    }
-    chat["cars"].insert(0, car)
+    car_id = chat["session"].get("carId")
+    car = next((c for c in chat["cars"] if c["id"] == car_id), None) if car_id else None
+    is_new = car is None
+
+    if is_new:
+        user = update.effective_user
+        # name stays None (not a placeholder string) until actually found --
+        # a placeholder here would be truthy and permanently block a real
+        # name from a later paste under the "fill gaps only" merge below.
+        car = {"id": int(time.time() * 1000), "name": None, "url": "", "notes": "",
+               "coeType": "original", "addedBy": {"id": user.id, "name": user.full_name} if user else None}
+        chat["cars"].insert(0, car)
+
+    # Fill gaps only — a later paste never clobbers something already known
+    # from an earlier one, so pasting the details block after the URL (or
+    # vice versa) always merges into the same entry instead of overwriting.
+    for k in _ADD_FIELD_KEYS:
+        v = fields.get(k)
+        if v is not None and v != "" and not car.get(k):
+            car[k] = v
+    if fields.get("coeType") and fields["coeType"] != "original":
+        car["coeType"] = fields["coeType"]
+
+    chat["session"]["carId"] = car["id"]
     save_chat(chat_id, chat)
-
-    # A bare link (no other figures found) is a valid, common case — say so
-    # plainly rather than showing an almost-empty "figures" summary.
-    if got == ["listing URL"]:
-        await update.message.reply_text(
-            f"🔖 Saved as a bookmark — <a href=\"{esc(car['url'])}\">link</a> logged, no figures yet.\n\n"
-            "Paste the listing's details block (from the same ad) to add price/depreciation/etc and compute "
-            "true depreciation, or leave it as-is for now.", parse_mode="HTML", link_preview_options=NO_PREVIEW)
-        return
 
     d = derive(car)
     fs = flags(car, d)
-    lines = [f"<b>{esc(car['name'])}</b>"]
+    lines = [f"<b>{esc(car.get('name') or 'Unnamed car')}</b>"]
+    if car.get("url"):
+        lines.append(f"🔗 <a href=\"{esc(car['url'])}\">link saved</a>")
     if car.get("price") is not None:
         lines.append(f"Price: {money(car['price'])}")
     if d.get("effDep") is not None:
@@ -722,9 +747,24 @@ async def handle_add_blob(update: Update, chat: dict, chat_id):
         lines.append(f"COE left: {d['yearsLeft']:.1f} yrs")
     if fs:
         lines.append("\n⚠️ " + "\n⚠️ ".join(f[1] for f in fs))
+
+    missing = _add_missing_bits(car)
+    verb = "Saved" if is_new else "Updated"
+    footer = f"\n\nStill missing: {', '.join(missing)} — paste that too, or tap Done." if missing else "\n\n✅ Looks complete."
     await update.message.reply_text(
-        f"Logged (read {len(got)} field{'s' if len(got) != 1 else ''}: {esc(', '.join(got))})\n\n" + "\n".join(lines),
-        parse_mode="HTML")
+        f"{verb} (read {len(got)} field{'s' if len(got) != 1 else ''}: {esc(', '.join(got))})\n\n"
+        + "\n".join(lines) + footer,
+        parse_mode="HTML", link_preview_options=NO_PREVIEW, reply_markup=kb([[("✅ Done", "add_done")]]))
+
+
+async def finish_add(cq, chat, chat_id):
+    chat["session"] = None
+    save_chat(chat_id, chat)
+    await cq.answer("Saved")
+    try:
+        await cq.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
 
 
 def _render_shortlist(cars: list[dict], title: str) -> str:
@@ -734,7 +774,7 @@ def _render_shortlist(cars: list[dict], title: str) -> str:
     lines = []
     for r in rows:
         d, c = r["d"], r["c"]
-        head = f"<b>{esc(c['name'])}</b>" + (f" — {r['score']}pts" if r["score"] is not None else "")
+        head = f"<b>{esc(c.get('name') or 'Unnamed car')}</b>" + (f" — {r['score']}pts" if r["score"] is not None else "")
         if d.get("reg") is None:
             bits = "  🔖 bookmark, no figures yet — paste details with /add to complete it"
         else:
@@ -756,6 +796,31 @@ def _distinct_contributors(cars: list[dict]) -> list[tuple[int, str, int]]:
     return [(uid, v["name"], v["count"]) for uid, v in seen.items()]
 
 
+def _cars_for_view(chat: dict, sel: str) -> tuple[list[dict], str]:
+    if sel == "all":
+        multi = len(_distinct_contributors(chat["cars"])) > 1
+        return chat["cars"], ("Everyone's shortlist" if multi else "Shortlist")
+    uid = int(sel)
+    cars = [c for c in chat["cars"] if (c.get("addedBy") or {}).get("id") == uid]
+    name = next((c["addedBy"]["name"] for c in chat["cars"] if (c.get("addedBy") or {}).get("id") == uid), "Someone")
+    return cars, f"{name}'s shortlist"
+
+
+def _shortlist_delete_keyboard(cars: list[dict], viewer_id, view_sel: str):
+    mine = [c for c in cars if (c.get("addedBy") or {}).get("id") == viewer_id]
+    if not mine:
+        return None
+    rows = [[(f"🗑 {(c.get('name') or 'Unnamed car')[:30]}", f"car_del:{c['id']}:{view_sel}")] for c in mine]
+    return kb(rows)
+
+
+def _shortlist_view(chat: dict, sel: str, viewer_id):
+    cars, title = _cars_for_view(chat, sel)
+    text = _render_shortlist(cars, title)
+    delkb = _shortlist_delete_keyboard(cars, viewer_id, sel) if viewer_id else None
+    return text, delkb
+
+
 async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = get_chat(update.effective_chat.id)
     if not chat["cars"]:
@@ -765,21 +830,32 @@ async def cmd_shortlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # added something — a solo chat or one where nobody's attributed yet
     # (older entries, before this feature) just shows everyone's, as before.
     if len(contributors) <= 1:
-        return await update.message.reply_text(_render_shortlist(chat["cars"], "Shortlist"), parse_mode="HTML")
+        viewer_id = update.effective_user.id if update.effective_user else None
+        text, delkb = _shortlist_view(chat, "all", viewer_id)
+        return await update.message.reply_text(text, parse_mode="HTML", reply_markup=delkb)
     rows = [[("👥 Everyone", "sl:all")]]
     rows += [[(f"{name} ({count})", f"sl:{uid}")] for uid, name, count in contributors]
     await update.message.reply_text("Whose shortlist do you want to see?", reply_markup=kb(rows))
 
 
 async def show_user_shortlist(cq, chat, chat_id, sel: str):
-    if sel == "all":
-        cars, title = chat["cars"], "Everyone's shortlist"
-    else:
-        uid = int(sel)
-        cars = [c for c in chat["cars"] if (c.get("addedBy") or {}).get("id") == uid]
-        title = f"{cars[0]['addedBy']['name']}'s shortlist" if cars else "Shortlist"
-    await cq.message.chat.send_message(_render_shortlist(cars, title), parse_mode="HTML")
+    text, delkb = _shortlist_view(chat, sel, cq.from_user.id)
+    await cq.message.chat.send_message(text, parse_mode="HTML", reply_markup=delkb)
     return await cq.answer()
+
+
+async def delete_own_car(cq, chat, chat_id, car_id, view_sel):
+    car = next((c for c in chat["cars"] if c["id"] == car_id), None)
+    if not car:
+        return await cq.answer("Already gone.")
+    owner_id = (car.get("addedBy") or {}).get("id")
+    if owner_id != cq.from_user.id:
+        return await cq.answer("You can only delete your own entries.", show_alert=True)
+    chat["cars"] = [c for c in chat["cars"] if c["id"] != car_id]
+    save_chat(chat_id, chat)
+    text, delkb = _shortlist_view(chat, view_sel, cq.from_user.id)
+    await cq.edit_message_text(text, parse_mode="HTML", reply_markup=delkb)
+    return await cq.answer(f"Deleted {car.get('name') or 'that entry'}")
 
 
 async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
