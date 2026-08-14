@@ -159,6 +159,7 @@ def models_root_keyboard(selected: list[str]) -> InlineKeyboardMarkup:
 
 def models_brand_keyboard(brand: str, selected: list[str]) -> InlineKeyboardMarkup:
     rows = [[(("☑️ " if f"{brand} {m}" in selected else "▫️ ") + m, f"hw:mt:{brand} {m}")] for m in CATALOG[brand]]
+    rows.append([(f"✏️ Add a specific {brand} model", "hw:mcustom")])
     rows.append([("◀ Brands", "hw:mback")])
     rows.append([(_models_done_label(selected), "hw:mdone")])
     return kb(rows)
@@ -309,23 +310,38 @@ async def wizard_toggle_model_name(cq, chat, chat_id, name):
 async def prompt_custom_models(cq, chat, chat_id):
     chat["session"]["step"] = "hunt_custom_models"
     save_chat(chat_id, chat)
-    await cq.message.chat.send_message(
-        "Type one or more model names, separated by commas or new lines — e.g. "
-        "<code>Mercedes-AMG E63, Ferrari 488</code>.", parse_mode="HTML")
+    view = chat["session"]["draft"].get("curView") or "root"
+    if view.startswith("brand:"):
+        brand = view[6:]
+        text = (f"Type one or more {esc(brand)} model names or trims, separated by commas or new lines — "
+                f"just the model (e.g. <code>S5, RS3</code>), I'll add “{esc(brand)}” automatically.")
+    else:
+        text = ("Type one or more model names, separated by commas or new lines — e.g. "
+                "<code>Mercedes-AMG E63, Ferrari 488</code>.")
+    await cq.message.chat.send_message(text, parse_mode="HTML")
     return await cq.answer()
 
 
 async def handle_custom_models(update: Update, chat: dict, chat_id):
-    names = [n.strip() for n in re.split(r"[,\n]", update.message.text) if n.strip()]
     d = chat["session"]["draft"]
+    view = d.get("curView") or "root"
+    brand_prefix = view[6:] + " " if view.startswith("brand:") else ""
+    names = [n.strip() for n in re.split(r"[,\n]", update.message.text) if n.strip()]
+    names = [n if (not brand_prefix or n.lower().startswith(brand_prefix.lower())) else brand_prefix + n for n in names]
     sel = d["modelNames"]
     added = [n for n in names if n not in sel]
     sel.extend(added)
     chat["session"]["step"] = "wizard"
-    d["curView"] = "root"
     save_chat(chat_id, chat)
     await update.message.reply_text(f"Added: {esc(', '.join(added)) if added else '(nothing new)'}", parse_mode="HTML")
-    await update.message.reply_text(MODELS_ROOT_TEXT, parse_mode="HTML", reply_markup=models_root_keyboard(sel))
+    if view.startswith("brand:"):
+        brand = view[6:]
+        await update.message.reply_text(f"🚗 <b>{esc(brand)}</b> — tap to toggle more, or Done.", parse_mode="HTML",
+                                         reply_markup=models_brand_keyboard(brand, sel))
+    else:
+        d["curView"] = "root"
+        save_chat(chat_id, chat)
+        await update.message.reply_text(MODELS_ROOT_TEXT, parse_mode="HTML", reply_markup=models_root_keyboard(sel))
 
 
 async def wizard_age(cq, chat, chat_id, age):
